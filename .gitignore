@@ -1,0 +1,54 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.so
+
+# ---- Virtual envs ----
+.venv/
+venv/
+env/
+
+# ---- Environment / secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Test / type / lint caches ----
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ---- ML / data artifacts ----
+chroma/
+.chroma/
+chroma_data/
+.cache/
+models_cache/
+
+# ---- Local uploads / fake object storage ----
+uploads/
+local_s3/
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Terraform ----
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!*.tfvars.example
+
+# ---- IDE / OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

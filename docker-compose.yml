@@ -1,0 +1,67 @@
+# HireSignal local stack. Bring it up with:  docker compose up --build
+# Bring it fully down (destroy data):        docker compose down -v
+
+services:
+  api:
+    build: .
+    container_name: hiresignal_api
+    # Override the image's production CMD with hot-reload for local dev.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file: .env
+    environment:
+      # Force file-watch polling so --reload works across the Windows/WSL mount.
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app          # local edits are reflected live in the container
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hiresignal
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: hiresignal_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"             # exposed so tools (e.g. Power BI) can connect later
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - hiresignal
+
+  redis:
+    image: redis:7-alpine
+    container_name: hiresignal_redis
+    ports:
+      # Host 16379 avoids Windows' reserved 5944-6443 range; container port stays 6379.
+      - "16379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - hiresignal
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  hiresignal:
+    driver: bridge

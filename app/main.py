@@ -11,9 +11,9 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import settings
+from app.db.session import engine
 
 logging.basicConfig(level=settings.log_level.upper())
 logger = logging.getLogger("hiresignal")
@@ -24,9 +24,7 @@ app = FastAPI(
     description="AI-powered job application tracker & resume analyzer.",
 )
 
-# Created once at import time and reused. The engine manages a connection pool;
-# `pool_pre_ping` transparently discards dead connections before use.
-engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+# The engine (connection pool) now lives in app.db.session and is shared app-wide.
 redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
 
 

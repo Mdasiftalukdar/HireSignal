@@ -35,6 +35,8 @@ COPY --from=builder /install /usr/local
 # Run as a non-root user (security best practice).
 RUN useradd --create-home --uid 1000 appuser
 COPY --chown=appuser:appuser app ./app
+COPY --chown=appuser:appuser alembic ./alembic
+COPY --chown=appuser:appuser alembic.ini ./
 USER appuser
 
 EXPOSE 8000

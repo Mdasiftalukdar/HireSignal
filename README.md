@@ -58,7 +58,7 @@ flowchart LR
 
 - [x] **Phase 0 — Foundations** · repo, structure, config, git
 - [x] **Phase 1 — Dockerized skeleton** · Compose: FastAPI + Postgres + Redis
-- [ ] **Phase 2 — Data layer** · SQLAlchemy models, Alembic migrations, indexes
+- [x] **Phase 2 — Data layer** · SQLAlchemy models, Alembic migrations, indexes
 - [ ] **Phase 3 — Core API** · CRUD, JWT auth, Redis cache-aside
 - [ ] **Phase 4 — AI job parser** · LangChain structured extraction
 - [ ] **Phase 5 — RAG pipeline** · PDF → chunk → embed → Chroma → match report

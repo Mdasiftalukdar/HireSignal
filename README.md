@@ -1,22 +1,22 @@
-# 🚀 HireSignal
+# HireSignal
 
-**AI-Powered Job Application Tracker & Resume Analyzer**
+**An AI-powered job-application tracker and resume analyzer — a secure, containerized, production-shaped backend.**
 
-HireSignal ingests your resume and a target job posting, then uses a Retrieval-Augmented
-Generation (RAG) pipeline to score the match, surface skill gaps, and draft tailored
-application material — all behind a production-shaped, fully containerized backend.
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-> **Status:** 🏗️ Under active construction — built phase-by-phase (see roadmap below).
+HireSignal turns *"does my resume fit this role?"* into a measurable, explainable signal.
+It stores job postings, resumes, and applications behind a secure REST API, and is designed
+to score resume↔job matches with a Retrieval-Augmented Generation (RAG) pipeline, surface
+skill gaps, and track every application through its hiring stages.
 
----
+> **Status:** actively developed. The core API, authentication, and data layer are complete;
+> the AI analysis, asynchronous processing, and observability layers are on the roadmap below.
 
-## Why this project exists
-
-Job searching is noisy and repetitive. HireSignal turns *"does my resume fit this role?"*
-into a measurable, explainable signal — while doubling as an end-to-end showcase of modern
-backend, AI, data, and infrastructure engineering.
-
-## Architecture (target)
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -34,53 +34,77 @@ flowchart LR
     PG -.analytics.-> PBI[Power BI]
 ```
 
-## Tech stack & why
+## Features
 
-| Layer | Tech | Why it's here |
-|------|------|---------------|
+**Available now**
+- 🔐 **JWT authentication** — bcrypt-hashed passwords, OAuth2 password flow, protected routes
+- 📇 **Typed REST API** for jobs, resumes, and applications with full CRUD, validation, and correct HTTP semantics
+- 🗃️ **PostgreSQL** with SQLAlchemy 2.0 models, deliberate indexing, and versioned **Alembic** migrations
+- ⚡ **Redis cache-aside** on read endpoints for sub-millisecond hot reads
+- 🐳 **One-command Docker stack** (API + PostgreSQL + Redis) with health checks and named volumes
+- 📖 **Auto-generated OpenAPI docs** at `/docs`
+
+**On the roadmap**
+- 🤖 AI resume↔job match scoring & gap analysis (LangChain + RAG + ChromaDB + sentence-transformers)
+- 🧵 Asynchronous analysis pipeline (Apache Kafka producer/consumer)
+- ☁️ Object storage for uploads (AWS S3)
+- 📊 Observability (Prometheus + Grafana) and BI analytics (Power BI)
+- 🕸️ GraphQL API (Strawberry) alongside REST
+- 🏗️ Infrastructure as Code (Terraform: S3, IAM, ECR)
+
+## Tech stack
+
+| Layer | Technology | Why |
+|------|------------|-----|
 | API | **FastAPI** | Async, type-safe, auto-generated OpenAPI docs |
-| Database | **PostgreSQL** | Relational integrity + powerful analytical SQL |
-| Cache | **Redis** | Sub-millisecond cache-aside for hot reads & LLM reuse |
-| ORM / migrations | **SQLAlchemy + Alembic** | Typed models + versioned schema changes |
-| AI orchestration | **LangChain** | Composable chains over LLMs |
-| Vector store | **ChromaDB** | Embedding storage + similarity search for RAG |
-| Embeddings | **sentence-transformers** | Local, free, no per-call cost |
-| Async pipeline | **Kafka** | Durable, scalable event queue for slow AI jobs |
-| Second API | **GraphQL (Strawberry)** | Flexible nested fetching alongside REST |
-| Object storage | **AWS S3** | Durable storage for resume files |
-| Observability | **Prometheus + Grafana** | Metrics collection + live dashboards |
-| Analytics | **Power BI + advanced SQL** | Business-facing reporting layer |
-| Infra as code | **Terraform** | Declarative, reviewable infrastructure |
-| Packaging | **Docker + Compose** | One-command reproducible stack |
-| CI | **GitHub Actions** | Automated tests on every push |
+| Database | **PostgreSQL 16** | Relational integrity + powerful analytical SQL |
+| ORM / migrations | **SQLAlchemy 2.0 + Alembic** | Typed models + versioned, reversible schema changes |
+| Cache | **Redis 7** | Sub-millisecond cache-aside for hot reads |
+| Auth | **JWT + bcrypt** (python-jose, passlib) | Stateless, horizontally-scalable authentication |
+| Packaging | **Docker + Compose** | Reproducible, one-command environment |
+| AI *(roadmap)* | **LangChain · ChromaDB · sentence-transformers** | RAG-based match scoring |
+| Async *(roadmap)* | **Apache Kafka** | Durable, scalable event pipeline |
 
-## Build phases
+## Getting started
 
-- [x] **Phase 0 — Foundations** · repo, structure, config, git
-- [x] **Phase 1 — Dockerized skeleton** · Compose: FastAPI + Postgres + Redis
-- [x] **Phase 2 — Data layer** · SQLAlchemy models, Alembic migrations, indexes
-- [ ] **Phase 3 — Core API** · CRUD, JWT auth, Redis cache-aside
-- [ ] **Phase 4 — AI job parser** · LangChain structured extraction
-- [ ] **Phase 5 — RAG pipeline** · PDF → chunk → embed → Chroma → match report
-- [ ] **Phase 6 — AI in the API** · /analyze, background jobs, S3 upload
-- [ ] **Phase 7 — Observability** · Prometheus metrics + Grafana
-- [ ] **Phase 8 — Analytics** · window functions, SQL views, Power BI
-- [ ] **Phase 9 — Kafka** · async producer/consumer
-- [ ] **Phase 10 — GraphQL** · Strawberry + DataLoader
-- [ ] **Phase 11 — Terraform** · S3 / IAM / ECR as code
-- [ ] **Phase 12 — Polish & deploy** · README, CI, diagram, demo, launch
-
-## Quickstart
-
-> Available from Phase 1 onward.
+**Prerequisite:** [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ```bash
-cp .env.example .env       # then fill in secrets
+git clone https://github.com/Mdasiftalukdar/HireSignal.git
+cd HireSignal
+cp .env.example .env        # review and adjust secrets
 docker compose up --build
-# API docs at http://localhost:8000/docs
 ```
 
-## Learning notes
+- API base: `http://localhost:8000`
+- Interactive docs: `http://localhost:8000/docs`
 
-Concept explanations captured as we build live in
-[`docs/learning-notes.md`](docs/learning-notes.md).
+Apply database migrations (first run):
+
+```bash
+docker compose exec api alembic upgrade head
+```
+
+## API overview
+
+| Area | Endpoints |
+|------|-----------|
+| **Auth** | `POST /api/v1/auth/register` · `POST /api/v1/auth/login` · `GET /api/v1/auth/me` |
+| **Jobs** | `POST/GET/PATCH/DELETE /api/v1/jobs` |
+| **Resumes** | `POST/GET/PATCH/DELETE /api/v1/resumes` |
+| **Applications** | `POST/GET/PATCH/DELETE /api/v1/applications` |
+
+All resource endpoints require a `Bearer` token. Obtain one via `/auth/login`, then use the
+**Authorize** button in `/docs` or send `Authorization: Bearer <token>`.
+
+## Project structure
+
+```
+app/
+├── api/routes/     # HTTP endpoints (auth, jobs, resumes, applications)
+├── core/           # configuration and security (hashing, JWT)
+├── db/             # async engine, session, declarative base
+├── models/         # SQLAlchemy ORM models
+└── schemas/        # Pydantic request/response models
+alembic/            # database migrations
+```

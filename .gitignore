@@ -52,3 +52,6 @@ crash.log
 *.swp
 .DS_Store
 Thumbs.db
+
+# ---- Local-only learning notes (kept off the public repo) ----
+docs/learning-notes.md

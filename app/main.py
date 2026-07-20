@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api.routes import applications, auth, jobs, resumes
+from app.api.routes import ai, applications, auth, jobs, resumes
 from app.core.cache import redis_client
 from app.core.config import settings
 from app.db.session import engine
@@ -30,6 +30,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(resumes.router, prefix="/api/v1")
 app.include_router(applications.router, prefix="/api/v1")
+app.include_router(ai.router, prefix="/api/v1")
 
 # The engine (app.db.session) and Redis client (app.core.cache) are each created once
 # in their own module and shared across the whole app.

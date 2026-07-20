@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     # Caching (used from Phase 3)
     cache_ttl_seconds: int = 300
 
+    # LLM (Phase 4) - provider-agnostic
+    llm_provider: str = "google"
+    google_api_key: str | None = None
+    gemini_model: str = "gemini-2.0-flash-lite"
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-5"
+
 
 # Import this singleton everywhere: `from app.core.config import settings`
 settings = Settings()

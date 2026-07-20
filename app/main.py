@@ -7,12 +7,12 @@ status - the standard way to make a service observable and orchestration-friendl
 
 import logging
 
-import redis.asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api.routes import applications, auth, jobs, resumes
+from app.core.cache import redis_client
 from app.core.config import settings
 from app.db.session import engine
 
@@ -31,8 +31,8 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(resumes.router, prefix="/api/v1")
 app.include_router(applications.router, prefix="/api/v1")
 
-# The engine (connection pool) now lives in app.db.session and is shared app-wide.
-redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
+# The engine (app.db.session) and Redis client (app.core.cache) are each created once
+# in their own module and shared across the whole app.
 
 
 @app.get("/")

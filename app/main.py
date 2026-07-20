@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.api.routes import jobs
 from app.core.config import settings
 from app.db.session import engine
 
@@ -23,6 +24,9 @@ app = FastAPI(
     version="0.1.0",
     description="AI-powered job application tracker & resume analyzer.",
 )
+
+# Mount versioned API routers (endpoints live under /api/v1).
+app.include_router(jobs.router, prefix="/api/v1")
 
 # The engine (connection pool) now lives in app.db.session and is shared app-wide.
 redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)

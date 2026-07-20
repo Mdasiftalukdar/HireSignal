@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
 
+    # Security / JWT
+    secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
     # Caching (used from Phase 3)
     cache_ttl_seconds: int = 300
 

@@ -9,11 +9,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.job import Job
 from app.schemas.job import JobCreate, JobRead, JobUpdate
 
-router = APIRouter(prefix="/jobs", tags=["jobs"])
+# Router-level dependency: every jobs endpoint now requires a valid JWT.
+router = APIRouter(
+    prefix="/jobs", tags=["jobs"], dependencies=[Depends(get_current_user)]
+)
 
 
 @router.post("", response_model=JobRead, status_code=status.HTTP_201_CREATED)

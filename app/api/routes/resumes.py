@@ -4,11 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.resume import Resume
 from app.schemas.resume import ResumeCreate, ResumeRead, ResumeUpdate
 
-router = APIRouter(prefix="/resumes", tags=["resumes"])
+router = APIRouter(
+    prefix="/resumes", tags=["resumes"], dependencies=[Depends(get_current_user)]
+)
 
 
 @router.post("", response_model=ResumeRead, status_code=status.HTTP_201_CREATED)

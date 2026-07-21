@@ -49,10 +49,11 @@ flowchart LR
 - 🧵 **Async analysis pipeline** — `POST /analyze` returns instantly; embedding + matching run in the background (poll for status)
 - ☁️ **Object storage (S3 / MinIO)** — original résumés persisted via the S3 API; the same code targets AWS S3
 - 📄 **Multi-format uploads** — PDF, DOCX, and TXT résumés
+- 📈 **Observability** — Prometheus metrics + provisioned Grafana dashboards (request rate, P95 latency, cache hit ratio, AI processing time)
 
 **On the roadmap**
 - 🧵 Durable event pipeline (Apache Kafka) — upgrade the in-process async worker to a broker
-- 📊 Observability (Prometheus + Grafana) and BI analytics (Power BI)
+- 📊 BI analytics dashboard (Power BI)
 - 🕸️ GraphQL API (Strawberry) alongside REST
 - 🏗️ Infrastructure as Code (Terraform: S3, IAM, ECR)
 

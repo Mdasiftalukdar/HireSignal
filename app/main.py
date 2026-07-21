@@ -14,6 +14,7 @@ from sqlalchemy import text
 from app.api.routes import ai, applications, auth, jobs, resumes
 from app.core.cache import redis_client
 from app.core.config import settings
+from app.core.metrics import setup_metrics
 from app.db.session import engine
 
 logging.basicConfig(level=settings.log_level.upper())
@@ -31,6 +32,9 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(resumes.router, prefix="/api/v1")
 app.include_router(applications.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1")
+
+# Prometheus: default HTTP metrics middleware + GET /metrics endpoint.
+setup_metrics(app)
 
 # The engine (app.db.session) and Redis client (app.core.cache) are each created once
 # in their own module and shared across the whole app.

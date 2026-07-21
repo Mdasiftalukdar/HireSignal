@@ -1,13 +1,17 @@
-"""Background analysis pipeline (Phase 6).
+"""Background analysis pipeline (Phase 6), instrumented for Prometheus (Phase 7).
 
 Runs off the request cycle via FastAPI BackgroundTasks. It opens its OWN DB session (the
 request's session is already closed by the time this runs), indexes the resume, runs the
 RAG match, and writes the result + status back to the `analyses` row. Any failure is
-recorded on the row instead of crashing the worker.
+recorded on the row instead of crashing the worker. Total processing time is measured into
+the `hiresignal_ai_processing_seconds` histogram.
 """
+
+import time
 
 from fastapi.concurrency import run_in_threadpool
 
+from app.core.metrics import ai_processing_seconds
 from app.db.session import AsyncSessionLocal
 from app.models.analysis import Analysis, AnalysisStatus
 from app.models.resume import Resume
@@ -23,6 +27,7 @@ async def process_analysis(analysis_id: int) -> None:
         analysis.status = AnalysisStatus.processing
         await db.commit()
 
+        start = time.perf_counter()
         try:
             resume = await db.get(Resume, analysis.resume_id)
             # Embedding is CPU-bound -> off the event loop.
@@ -38,5 +43,9 @@ async def process_analysis(analysis_id: int) -> None:
         except Exception as exc:  # noqa: BLE001 - record failure, keep the worker alive
             analysis.status = AnalysisStatus.failed
             analysis.error = f"{exc.__class__.__name__}: {exc}"
+        finally:
+            ai_processing_seconds.labels(operation="analyze").observe(
+                time.perf_counter() - start
+            )
 
         await db.commit()

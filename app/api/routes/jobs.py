@@ -2,7 +2,7 @@
 
 Reads try Redis first (cache HIT) and fall back to Postgres (cache MISS), storing the
 result with a TTL. Writes invalidate the cached reads so clients never see stale data.
-An `X-Cache: HIT|MISS` response header makes the behavior observable.
+An `X-Cache: HIT|MISS` response header + a Prometheus counter make the behavior observable.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.cache import cache_get_json, cache_invalidate_prefix, cache_set_json
+from app.core.metrics import cache_events
 from app.db.session import get_db
 from app.models.job import Job
 from app.schemas.job import JobCreate, JobRead, JobUpdate
@@ -21,6 +22,10 @@ router = APIRouter(
 )
 
 CACHE_PREFIX = "jobs:"
+
+
+def _record_cache(result: str) -> None:
+    cache_events.labels(resource="jobs", result=result).inc()
 
 
 @router.post("", response_model=JobRead, status_code=status.HTTP_201_CREATED)
@@ -45,6 +50,7 @@ async def list_jobs(
     cached = await cache_get_json(key)
     if cached is not None:
         response.headers["X-Cache"] = "HIT"
+        _record_cache("hit")
         return cached
 
     stmt = select(Job).order_by(Job.created_at.desc()).offset(skip).limit(limit)
@@ -55,6 +61,7 @@ async def list_jobs(
 
     await cache_set_json(key, data)
     response.headers["X-Cache"] = "MISS"
+    _record_cache("miss")
     return data
 
 
@@ -64,6 +71,7 @@ async def get_job(job_id: int, response: Response, db: AsyncSession = Depends(ge
     cached = await cache_get_json(key)
     if cached is not None:
         response.headers["X-Cache"] = "HIT"
+        _record_cache("hit")
         return cached
 
     job = await db.get(Job, job_id)
@@ -73,6 +81,7 @@ async def get_job(job_id: int, response: Response, db: AsyncSession = Depends(ge
 
     await cache_set_json(key, data)
     response.headers["X-Cache"] = "MISS"
+    _record_cache("miss")
     return data
 
 

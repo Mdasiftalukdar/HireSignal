@@ -1,0 +1,4 @@
+# PyTorch (CPU build) only - large and stable, with no shared transitive deps, so it sits
+# safely in its own cached Docker layer. Everything else resolves together in requirements.txt.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu

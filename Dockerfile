@@ -15,6 +15,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc \
     && rm -rf /var/lib/apt/lists/*
 
+# Heavy, rarely-changing ML deps first -> this layer stays cached when app deps change.
+COPY requirements-ml.txt .
+RUN pip install --prefix=/install -r requirements-ml.txt
+# Lighter, fast-changing app deps second.
 COPY requirements.txt .
 RUN pip install --prefix=/install -r requirements.txt
 

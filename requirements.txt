@@ -26,3 +26,7 @@ torch==2.5.1+cpu
 sentence-transformers>=3,<4
 chromadb>=0.5,<0.7
 pypdf>=5,<6
+
+# ---- Phase 6: object storage (S3/MinIO) + more resume formats ----
+boto3>=1.35,<2
+python-docx>=1.1,<2

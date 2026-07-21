@@ -24,6 +24,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - hiresignal
 
@@ -62,9 +64,25 @@ services:
     networks:
       - hiresignal
 
+  minio:
+    image: minio/minio:latest
+    container_name: hiresignal_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web console -> http://localhost:9001
+    volumes:
+      - miniodata:/data
+    networks:
+      - hiresignal
+
 volumes:
   pgdata:
   redisdata:
+  miniodata:
 
 networks:
   hiresignal:

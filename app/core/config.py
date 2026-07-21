@@ -51,6 +51,13 @@ class Settings(BaseSettings):
     chroma_collection: str = "resumes"
     chroma_persist_dir: str = "/app/chroma_data"
 
+    # Object storage / S3 (Phase 6) - MinIO locally, AWS S3 in production
+    aws_region: str = "us-east-1"
+    aws_access_key_id: str | None = None
+    aws_secret_access_key: str | None = None
+    s3_bucket: str = "hiresignal-resumes"
+    s3_endpoint_url: str | None = None  # e.g. http://minio:9000; blank for real AWS
+
 
 # Import this singleton everywhere: `from app.core.config import settings`
 settings = Settings()

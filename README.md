@@ -46,10 +46,12 @@ flowchart LR
 - 🤖 **AI job-description parser** — LangChain structured extraction to typed JSON
 - 🎯 **AI resume ↔ job matching (RAG)** — local sentence-transformers embeddings + ChromaDB → fit score, matched/missing skills, recommendation
 - 🔀 **Multi-provider LLM layer** with automatic fallback (OpenRouter → Gemini → DeepSeek)
+- 🧵 **Async analysis pipeline** — `POST /analyze` returns instantly; embedding + matching run in the background (poll for status)
+- ☁️ **Object storage (S3 / MinIO)** — original résumés persisted via the S3 API; the same code targets AWS S3
+- 📄 **Multi-format uploads** — PDF, DOCX, and TXT résumés
 
 **On the roadmap**
-- 🧵 Asynchronous analysis pipeline (Apache Kafka producer/consumer)
-- ☁️ Object storage for uploads (AWS S3)
+- 🧵 Durable event pipeline (Apache Kafka) — upgrade the in-process async worker to a broker
 - 📊 Observability (Prometheus + Grafana) and BI analytics (Power BI)
 - 🕸️ GraphQL API (Strawberry) alongside REST
 - 🏗️ Infrastructure as Code (Terraform: S3, IAM, ECR)

@@ -1,8 +1,12 @@
-"""AI endpoints (Phase 4-5). Requires authentication like the other resources."""
+"""AI endpoints (Phase 4-5). Requires authentication like the other resources.
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+The text-in endpoints (`/parse-job`, `/match`) take **form fields**, not a JSON body, so
+pasting multi-line job descriptions works without escaping newlines.
+"""
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -30,14 +34,10 @@ def _llm_http_error(exc: Exception) -> HTTPException:
 # ---------- Phase 4: job-description parser ----------
 
 
-class ParseJobRequest(BaseModel):
-    job_description: str = Field(min_length=20)
-
-
 @router.post("/parse-job", response_model=ParsedJob)
-async def parse_job(payload: ParseJobRequest):
+async def parse_job(job_description: str = Form(..., min_length=20)):
     try:
-        return await parse_job_description(payload.job_description)
+        return await parse_job_description(job_description)
     except Exception as exc:  # noqa: BLE001
         raise _llm_http_error(exc) from exc
 
@@ -77,16 +77,15 @@ async def index_resume_endpoint(
     )
 
 
-class MatchRequest(BaseModel):
-    resume_id: int
-    job_description: str = Field(min_length=20)
-
-
 @router.post("/match", response_model=MatchReport)
-async def match_endpoint(payload: MatchRequest, db: AsyncSession = Depends(get_db)):
-    if await db.get(Resume, payload.resume_id) is None:
+async def match_endpoint(
+    resume_id: int = Form(...),
+    job_description: str = Form(..., min_length=20),
+    db: AsyncSession = Depends(get_db),
+):
+    if await db.get(Resume, resume_id) is None:
         raise HTTPException(status_code=404, detail="Resume not found")
     try:
-        return await match_resume_to_job(payload.resume_id, payload.job_description)
+        return await match_resume_to_job(resume_id, job_description)
     except Exception as exc:  # noqa: BLE001
         raise _llm_http_error(exc) from exc

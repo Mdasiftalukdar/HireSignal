@@ -2,13 +2,17 @@
 
 The model is constrained to a Pydantic schema (`ParsedJob`) via LangChain's
 `with_structured_output`, so we get typed, validated fields back instead of loose prose.
-Temperature 0 (set in the model factory) keeps extraction deterministic.
+
+The chain uses `.with_fallbacks(...)`: it tries the primary provider first and, if that
+call raises (e.g. Gemini hits its free-tier quota), automatically retries the same request
+on the next configured provider (DeepSeek) - no client-visible failure.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
 from pydantic import BaseModel, Field
 
-from app.services.llm import get_chat_model
+from app.services.llm import get_chat_model, provider_order
 
 
 class ParsedJob(BaseModel):
@@ -43,7 +47,17 @@ _PROMPT = ChatPromptTemplate.from_messages(
 )
 
 
+def _build_chain() -> Runnable:
+    """Primary provider chain with automatic fallback to the remaining providers."""
+    providers = provider_order()
+    if not providers:
+        raise RuntimeError("No LLM provider is configured with an API key.")
+    chains = [
+        _PROMPT | get_chat_model(p).with_structured_output(ParsedJob) for p in providers
+    ]
+    primary, *fallbacks = chains
+    return primary.with_fallbacks(fallbacks) if fallbacks else primary
+
+
 async def parse_job_description(text: str) -> ParsedJob:
-    # `with_structured_output` forces the model to return data matching ParsedJob.
-    chain = _PROMPT | get_chat_model().with_structured_output(ParsedJob)
-    return await chain.ainvoke({"job_description": text})
+    return await _build_chain().ainvoke({"job_description": text})

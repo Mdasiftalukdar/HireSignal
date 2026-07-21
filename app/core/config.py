@@ -29,12 +29,16 @@ class Settings(BaseSettings):
     # Caching (used from Phase 3)
     cache_ttl_seconds: int = 300
 
-    # LLM (Phase 4) - provider-agnostic
+    # LLM (Phase 4) - provider-agnostic with automatic fallback
     llm_provider: str = "google"
+    llm_fallback_providers: str = "deepseek"  # comma-separated; tried in order on failure
     google_api_key: str | None = None
     gemini_model: str = "gemini-2.0-flash-lite"
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-sonnet-5"
+    deepseek_api_key: str | None = None
+    deepseek_model: str = "deepseek-chat"
+    deepseek_base_url: str = "https://api.deepseek.com"
 
 
 # Import this singleton everywhere: `from app.core.config import settings`

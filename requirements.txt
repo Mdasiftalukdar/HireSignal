@@ -16,5 +16,6 @@ python-jose[cryptography]==3.3.0
 python-multipart==0.0.20
 email-validator==2.2.0
 
-# ---- Phase 4: AI (LangChain + Google Gemini) ----
+# ---- Phase 4: AI (LangChain; providers: Google Gemini + DeepSeek fallback) ----
 langchain-google-genai>=2.0,<3
+langchain-openai>=0.3,<2

@@ -1,17 +1,32 @@
-"""Provider-agnostic LLM factory.
+"""Provider-agnostic LLM factory with an ordered fallback chain.
 
-The rest of the app calls `get_chat_model()` and never hard-codes a vendor. Switching
-providers is a change to LLM_PROVIDER in .env - nothing else. Provider SDKs are imported
-lazily so you only need the package for the provider you actually use.
+`get_chat_model(provider)` builds one chat model for a named provider. `provider_order()`
+returns the primary provider followed by any configured fallbacks that actually have an API
+key set - callers wrap a runnable with `.with_fallbacks(...)` (see job_parser) so a failure
+of the primary (e.g. Gemini quota) automatically retries on the next provider.
+
+Reordering or switching providers is a change to LLM_PROVIDER / LLM_FALLBACK_PROVIDERS in .env.
+Provider SDKs are imported lazily so you only need the package for providers you actually use.
 """
 
 from langchain_core.language_models import BaseChatModel
 
 from app.core.config import settings
 
+_KEY_ATTR = {
+    "google": "google_api_key",
+    "anthropic": "anthropic_api_key",
+    "deepseek": "deepseek_api_key",
+}
 
-def get_chat_model(temperature: float = 0.0) -> BaseChatModel:
-    provider = settings.llm_provider.lower()
+
+def _has_key(provider: str) -> bool:
+    attr = _KEY_ATTR.get(provider)
+    return bool(attr and getattr(settings, attr, None))
+
+
+def get_chat_model(provider: str, temperature: float = 0.0) -> BaseChatModel:
+    provider = provider.lower()
 
     if provider == "google":
         from langchain_google_genai import ChatGoogleGenerativeAI
@@ -20,7 +35,19 @@ def get_chat_model(temperature: float = 0.0) -> BaseChatModel:
             model=settings.gemini_model,
             google_api_key=settings.google_api_key,
             temperature=temperature,
-            max_retries=0,  # fail fast on free-tier 429s instead of blocking on backoff
+            max_retries=0,  # fail fast so the fallback engages promptly
+        )
+
+    if provider == "deepseek":
+        # DeepSeek is OpenAI-API compatible - use ChatOpenAI pointed at its base URL.
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
+            model=settings.deepseek_model,
+            api_key=settings.deepseek_api_key,
+            base_url=settings.deepseek_base_url,
+            temperature=temperature,
+            max_retries=0,
         )
 
     if provider == "anthropic":
@@ -32,4 +59,17 @@ def get_chat_model(temperature: float = 0.0) -> BaseChatModel:
             temperature=temperature,
         )
 
-    raise ValueError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
+    raise ValueError(f"Unsupported LLM provider: {provider!r}")
+
+
+def provider_order() -> list[str]:
+    """Primary provider first, then configured fallbacks; only those with an API key."""
+    order = [settings.llm_provider]
+    order += [p.strip() for p in settings.llm_fallback_providers.split(",") if p.strip()]
+    seen: set[str] = set()
+    result: list[str] = []
+    for provider in (p.lower() for p in order):
+        if provider and provider not in seen and _has_key(provider):
+            seen.add(provider)
+            result.append(provider)
+    return result

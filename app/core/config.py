@@ -30,8 +30,11 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 300
 
     # LLM (Phase 4) - provider-agnostic with automatic fallback
-    llm_provider: str = "google"
-    llm_fallback_providers: str = "deepseek"  # comma-separated; tried in order on failure
+    llm_provider: str = "openrouter"
+    llm_fallback_providers: str = "google,deepseek"  # tried in order on failure
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openai/gpt-4o-mini"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
     google_api_key: str | None = None
     gemini_model: str = "gemini-2.0-flash-lite"
     anthropic_api_key: str | None = None

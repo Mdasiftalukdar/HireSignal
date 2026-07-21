@@ -43,9 +43,11 @@ flowchart LR
 - ⚡ **Redis cache-aside** on read endpoints for sub-millisecond hot reads
 - 🐳 **One-command Docker stack** (API + PostgreSQL + Redis) with health checks and named volumes
 - 📖 **Auto-generated OpenAPI docs** at `/docs`
+- 🤖 **AI job-description parser** — LangChain structured extraction to typed JSON
+- 🎯 **AI resume ↔ job matching (RAG)** — local sentence-transformers embeddings + ChromaDB → fit score, matched/missing skills, recommendation
+- 🔀 **Multi-provider LLM layer** with automatic fallback (OpenRouter → Gemini → DeepSeek)
 
 **On the roadmap**
-- 🤖 AI resume↔job match scoring & gap analysis (LangChain + RAG + ChromaDB + sentence-transformers)
 - 🧵 Asynchronous analysis pipeline (Apache Kafka producer/consumer)
 - ☁️ Object storage for uploads (AWS S3)
 - 📊 Observability (Prometheus + Grafana) and BI analytics (Power BI)

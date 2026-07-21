@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-chat"
     deepseek_base_url: str = "https://api.deepseek.com"
 
+    # RAG (Phase 5)
+    embedding_model: str = "all-MiniLM-L6-v2"
+    chunk_size: int = 500
+    chunk_overlap: int = 50
+    retrieve_top_k: int = 5
+    chroma_collection: str = "resumes"
+    chroma_persist_dir: str = "/app/chroma_data"
+
 
 # Import this singleton everywhere: `from app.core.config import settings`
 settings = Settings()

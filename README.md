@@ -2,6 +2,7 @@
 
 **An AI-powered job-application tracker and resume analyzer — a secure, containerized, production-shaped backend.**
 
+[![CI](https://github.com/Mdasiftalukdar/HireSignal/actions/workflows/ci.yml/badge.svg)](https://github.com/Mdasiftalukdar/HireSignal/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
@@ -54,10 +55,11 @@ flowchart LR
 - 🧵 **Durable event pipeline (Kafka)** — `/analyze` publishes to a topic; a separate consumer service processes jobs (survives restarts, scales independently)
 - 🕸️ **GraphQL API (Strawberry)** — queries + mutations alongside REST, with a DataLoader (N+1 solved) and a playground at `/graphql`
 - 🏗️ **Infrastructure as Code (Terraform)** — S3 · least-privilege IAM · ECR, validated + planned ([`infra/terraform/`](infra/terraform/))
+- ✅ **CI (GitHub Actions)** — unit tests run on every push
 
 **On the roadmap**
 - 📊 Power BI dashboard on the analytics views (funnel · skill demand · conversion)
-- 🤖 CI (GitHub Actions) + containerized deployment
+- 🚀 Optional: live cloud deployment (ECS/Fargate) on the Terraform infrastructure
 
 ## Tech stack
 
@@ -91,6 +93,15 @@ Apply database migrations (first run):
 ```bash
 docker compose exec api alembic upgrade head
 ```
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+Fast unit tests (chunking, auth, text extraction) also run in **CI on every push**.
 
 ## API overview
 

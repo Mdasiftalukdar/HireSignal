@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars and adjust. (terraform.tfvars is gitignored.)
+aws_region         = "us-east-1"
+project            = "hiresignal"
+resume_bucket_name = "hiresignal-resumes-yourname" # must be globally unique

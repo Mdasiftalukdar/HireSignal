@@ -53,10 +53,11 @@ flowchart LR
 - 📊 **SQL analytics layer** — reporting views + a window-function query library ([`analytics/`](analytics/)), Power BI-ready
 - 🧵 **Durable event pipeline (Kafka)** — `/analyze` publishes to a topic; a separate consumer service processes jobs (survives restarts, scales independently)
 - 🕸️ **GraphQL API (Strawberry)** — queries + mutations alongside REST, with a DataLoader (N+1 solved) and a playground at `/graphql`
+- 🏗️ **Infrastructure as Code (Terraform)** — S3 · least-privilege IAM · ECR, validated + planned ([`infra/terraform/`](infra/terraform/))
 
 **On the roadmap**
 - 📊 Power BI dashboard on the analytics views (funnel · skill demand · conversion)
-- 🏗️ Infrastructure as Code (Terraform: S3, IAM, ECR)
+- 🤖 CI (GitHub Actions) + containerized deployment
 
 ## Tech stack
 

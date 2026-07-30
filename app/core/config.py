@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     s3_bucket: str = "hiresignal-resumes"
     s3_endpoint_url: str | None = None  # e.g. http://minio:9000; blank for real AWS
 
+    # Kafka (Phase 9)
+    kafka_bootstrap_servers: str = "kafka:9092"
+    kafka_topic_analysis: str = "resume-analysis"
+    kafka_consumer_group: str = "analysis-workers"
+
 
 # Import this singleton everywhere: `from app.core.config import settings`
 settings = Settings()

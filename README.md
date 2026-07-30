@@ -51,9 +51,9 @@ flowchart LR
 - 📄 **Multi-format uploads** — PDF, DOCX, and TXT résumés
 - 📈 **Observability** — Prometheus metrics + provisioned Grafana dashboards (request rate, P95 latency, cache hit ratio, AI processing time)
 - 📊 **SQL analytics layer** — reporting views + a window-function query library ([`analytics/`](analytics/)), Power BI-ready
+- 🧵 **Durable event pipeline (Kafka)** — `/analyze` publishes to a topic; a separate consumer service processes jobs (survives restarts, scales independently)
 
 **On the roadmap**
-- 🧵 Durable event pipeline (Apache Kafka) — upgrade the in-process async worker to a broker
 - 📊 Power BI dashboard on the analytics views (funnel · skill demand · conversion)
 - 🕸️ GraphQL API (Strawberry) alongside REST
 - 🏗️ Infrastructure as Code (Terraform: S3, IAM, ECR)

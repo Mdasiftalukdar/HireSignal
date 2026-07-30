@@ -1,24 +1,16 @@
-"""AI endpoints (Phases 4-6). All require authentication.
+"""AI endpoints (Phases 4-9). All require authentication.
 
 - Phase 4: /parse-job                     synchronous structured extraction
 - Phase 5: /resumes/index, /match         synchronous RAG
-- Phase 6: /analyze, /analyze/{id}        async: store file in S3/MinIO -> background index+match
+- Phase 6: /analyze, /analyze/{id}        async: store file -> queue -> background index+match
+- Phase 9: /analyze now publishes to Kafka; a separate consumer service does the work.
 
 Text-in endpoints take form fields so multi-line job descriptions paste cleanly.
 """
 
 from uuid import uuid4
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    File,
-    Form,
-    HTTPException,
-    UploadFile,
-    status,
-)
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +20,7 @@ from app.db.session import get_db
 from app.models.analysis import Analysis, AnalysisStatus
 from app.models.resume import Resume
 from app.schemas.analysis import AnalysisRead, AnalysisSubmitResponse
-from app.services.analysis import process_analysis
+from app.services.events import publish_analysis
 from app.services.extract import SUPPORTED, extract_text
 from app.services.job_parser import ParsedJob, parse_job_description
 from app.services.rag import MatchReport, index_resume, match_resume_to_job
@@ -119,7 +111,7 @@ async def match_endpoint(
         raise _llm_http_error(exc) from exc
 
 
-# ---------- Phase 6: async analyze (store file -> background index+match) ----------
+# ---------- Phase 6/9: async analyze (store file -> Kafka -> consumer index+match) ----------
 
 
 @router.post(
@@ -128,7 +120,6 @@ async def match_endpoint(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def analyze(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     job_description: str = Form(..., min_length=20),
     db: AsyncSession = Depends(get_db),
@@ -154,8 +145,14 @@ async def analyze(
     await db.commit()
     await db.refresh(analysis)
 
-    # 3) Heavy work (embed + LLM) runs AFTER the response is returned.
-    background_tasks.add_task(process_analysis, analysis.id)
+    # 3) Publish the job to Kafka; the consumer service does the heavy work.
+    try:
+        await publish_analysis(analysis.id)
+    except Exception as exc:  # noqa: BLE001 - queue unavailable
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Analysis queue is unavailable; please retry shortly.",
+        ) from exc
 
     return AnalysisSubmitResponse(
         analysis_id=analysis.id, resume_id=resume.id, status=analysis.status, s3_key=key

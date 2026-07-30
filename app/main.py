@@ -6,6 +6,7 @@ status - the standard way to make a service observable and orchestration-friendl
 """
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -16,14 +17,24 @@ from app.core.cache import redis_client
 from app.core.config import settings
 from app.core.metrics import setup_metrics
 from app.db.session import engine
+from app.services.events import start_producer, stop_producer
 
 logging.basicConfig(level=settings.log_level.upper())
 logger = logging.getLogger("hiresignal")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Start the Kafka producer on boot, stop it cleanly on shutdown.
+    await start_producer()
+    yield
+    await stop_producer()
+
 
 app = FastAPI(
     title="HireSignal API",
     version="0.1.0",
     description="AI-powered job application tracker & resume analyzer.",
+    lifespan=lifespan,
 )
 
 # Mount versioned API routers (endpoints live under /api/v1).

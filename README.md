@@ -50,10 +50,11 @@ flowchart LR
 - ☁️ **Object storage (S3 / MinIO)** — original résumés persisted via the S3 API; the same code targets AWS S3
 - 📄 **Multi-format uploads** — PDF, DOCX, and TXT résumés
 - 📈 **Observability** — Prometheus metrics + provisioned Grafana dashboards (request rate, P95 latency, cache hit ratio, AI processing time)
+- 📊 **SQL analytics layer** — reporting views + a window-function query library ([`analytics/`](analytics/)), Power BI-ready
 
 **On the roadmap**
 - 🧵 Durable event pipeline (Apache Kafka) — upgrade the in-process async worker to a broker
-- 📊 BI analytics dashboard (Power BI)
+- 📊 Power BI dashboard on the analytics views (funnel · skill demand · conversion)
 - 🕸️ GraphQL API (Strawberry) alongside REST
 - 🏗️ Infrastructure as Code (Terraform: S3, IAM, ECR)
 

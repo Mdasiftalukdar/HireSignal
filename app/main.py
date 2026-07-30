@@ -17,6 +17,7 @@ from app.core.cache import redis_client
 from app.core.config import settings
 from app.core.metrics import setup_metrics
 from app.db.session import engine
+from app.graphql.schema import graphql_router
 from app.services.events import start_producer, stop_producer
 
 logging.basicConfig(level=settings.log_level.upper())
@@ -43,6 +44,9 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(resumes.router, prefix="/api/v1")
 app.include_router(applications.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1")
+
+# GraphQL API (Strawberry) alongside REST, with an interactive playground at /graphql.
+app.include_router(graphql_router, prefix="/graphql")
 
 # Prometheus: default HTTP metrics middleware + GET /metrics endpoint.
 setup_metrics(app)

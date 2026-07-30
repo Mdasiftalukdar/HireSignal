@@ -52,10 +52,10 @@ flowchart LR
 - 📈 **Observability** — Prometheus metrics + provisioned Grafana dashboards (request rate, P95 latency, cache hit ratio, AI processing time)
 - 📊 **SQL analytics layer** — reporting views + a window-function query library ([`analytics/`](analytics/)), Power BI-ready
 - 🧵 **Durable event pipeline (Kafka)** — `/analyze` publishes to a topic; a separate consumer service processes jobs (survives restarts, scales independently)
+- 🕸️ **GraphQL API (Strawberry)** — queries + mutations alongside REST, with a DataLoader (N+1 solved) and a playground at `/graphql`
 
 **On the roadmap**
 - 📊 Power BI dashboard on the analytics views (funnel · skill demand · conversion)
-- 🕸️ GraphQL API (Strawberry) alongside REST
 - 🏗️ Infrastructure as Code (Terraform: S3, IAM, ECR)
 
 ## Tech stack

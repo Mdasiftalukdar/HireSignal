@@ -37,3 +37,6 @@ prometheus-fastapi-instrumentator>=7,<8
 
 # ---- Phase 9: Kafka async pipeline ----
 aiokafka>=0.11,<0.13
+
+# ---- Phase 10: GraphQL ----
+strawberry-graphql[fastapi]>=0.235,<1

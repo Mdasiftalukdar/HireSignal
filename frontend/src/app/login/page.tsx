@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
+import { ConsentNote } from "@/components/ConsentNote";
 import { GoogleButton } from "@/components/GoogleButton";
 import { Alert, Button, Input, Label } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -93,6 +94,7 @@ export default function LoginPage() {
         <Button type="submit" className="w-full" loading={busy}>
           Sign in
         </Button>
+        <ConsentNote action="signing in" />
       </form>
     </AuthShell>
   );

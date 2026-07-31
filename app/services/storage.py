@@ -57,3 +57,11 @@ def upload_bytes(
         Bucket=settings.s3_bucket, Key=key, Body=data, ContentType=content_type
     )
     return key
+
+
+def delete_object(key: str) -> None:
+    """Best-effort delete (used when a saved résumé is removed)."""
+    try:
+        _s3().delete_object(Bucket=settings.s3_bucket, Key=key)
+    except Exception:  # noqa: BLE001 - deletion is best-effort
+        pass

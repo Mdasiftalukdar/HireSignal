@@ -29,12 +29,18 @@ class Settings(BaseSettings):
     # Caching (used from Phase 3)
     cache_ttl_seconds: int = 300
 
+    # Product limits (Round 1)
+    daily_free_limit: int = 2  # analyses/day without a bring-your-own API key
+    max_saved_resumes: int = 3
+
     # LLM (Phase 4) - provider-agnostic with automatic fallback
     llm_provider: str = "openrouter"
     llm_fallback_providers: str = "google,deepseek"  # tried in order on failure
     openrouter_api_key: str | None = None
     openrouter_model: str = "openai/gpt-4o-mini"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
     google_api_key: str | None = None
     gemini_model: str = "gemini-2.0-flash-lite"
     anthropic_api_key: str | None = None

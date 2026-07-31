@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api.routes import ai, applications, auth, jobs, resumes
+from app.api.routes import ai, applications, auth, jobs, me, resumes
 from app.core.cache import redis_client
 from app.core.config import settings
 from app.core.metrics import setup_metrics
@@ -44,6 +44,7 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(resumes.router, prefix="/api/v1")
 app.include_router(applications.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1")
+app.include_router(me.router, prefix="/api/v1")
 
 # GraphQL API (Strawberry) alongside REST, with an interactive playground at /graphql.
 app.include_router(graphql_router, prefix="/graphql")

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.analysis import AnalysisStatus
+from app.models.analysis import AnalysisStatus, DecisionStatus
 
 
 class AnalysisSubmitResponse(BaseModel):
@@ -28,6 +28,10 @@ class AnalysisRead(BaseModel):
     section_suggestions: list[str] | None = None
     weaknesses: list[str] | None = None
     suggested_bullets: list[str] | None = None
+    resume_summary: str | None = None
+    job_summary: str | None = None
+    applied: bool = False
+    decision: DecisionStatus | None = None
     recommendation: str | None = None
     error: str | None = None
     created_at: datetime

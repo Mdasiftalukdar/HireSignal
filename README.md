@@ -45,11 +45,13 @@ flowchart LR
 - 🐳 **One-command Docker stack** (API + PostgreSQL + Redis) with health checks and named volumes
 - 📖 **Auto-generated OpenAPI docs** at `/docs`
 - 🤖 **AI job-description parser** — LangChain structured extraction to typed JSON
-- 🎯 **AI resume ↔ job matching (RAG)** — local sentence-transformers embeddings + ChromaDB → fit score, matched/missing skills, recommendation
+- 🎯 **AI resume ↔ job matching (RAG)** — fit score, matched/missing skills, keyword coverage, section fixes, and **ATS-friendly résumé bullets** to add
 - 🔀 **Multi-provider LLM layer** with automatic fallback (OpenRouter → Gemini → DeepSeek)
 - 🧵 **Async analysis pipeline** — `POST /analyze` returns instantly; embedding + matching run in the background (poll for status)
 - ☁️ **Object storage (S3 / MinIO)** — original résumés persisted via the S3 API; the same code targets AWS S3
-- 📄 **Multi-format uploads** — PDF, DOCX, and TXT résumés
+- 📄 **Multi-format uploads** — PDF, DOCX, and TXT résumés (or paste text)
+- 👤 **Per-user accounts** — up to 3 saved résumés, bring-your-own LLM key (encrypted) for unlimited use or a daily free limit, with usage counters
+- 🗂️ **Usage tracker** — every check saved with résumé/JD summaries + applied/decision status
 - 📈 **Observability** — Prometheus metrics + provisioned Grafana dashboards (request rate, P95 latency, cache hit ratio, AI processing time)
 - 📊 **SQL analytics layer** — reporting views + a window-function query library ([`analytics/`](analytics/)), Power BI-ready
 - 🧵 **Durable event pipeline (Kafka)** — `/analyze` publishes to a topic; a separate consumer service processes jobs (survives restarts, scales independently)

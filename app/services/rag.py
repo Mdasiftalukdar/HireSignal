@@ -54,6 +54,12 @@ class MatchReport(BaseModel):
             "phrased for once the candidate has gained them"
         ),
     )
+    resume_summary: str = Field(
+        default="", description="1-2 sentence summary of the candidate's résumé"
+    )
+    job_summary: str = Field(
+        default="", description="1-2 sentence summary of the job (role + key requirements)"
+    )
     recommendation: str = Field(
         description="2-3 sentence overall recommendation to the candidate"
     )
@@ -72,11 +78,13 @@ _MATCH_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "You are an expert technical recruiter and resume coach. Assess how well a candidate "
-            "fits a role using ONLY the provided resume excerpts - never invent experience. Give "
-            "specific, actionable feedback: matched vs missing skills, job-description keyword "
-            "coverage, section-by-section improvements, weaknesses for THIS role, and 3-5 concrete "
-            "resume bullet points the candidate could add once they gain the missing skills.",
+            "You are an expert technical recruiter and ATS-savvy resume coach. Assess how well a "
+            "candidate fits a role using ONLY the provided resume excerpts - never invent experience. "
+            "Make ALL feedback ATS-friendly: reuse the job description's exact keywords/terminology, "
+            "standard section names, and strong action verbs with quantified impact in bullets. "
+            "Provide matched vs missing skills, keyword coverage, section-by-section improvements, "
+            "weaknesses for THIS role, 3-5 concrete resume bullets the candidate could add once they "
+            "gain the missing skills, and a 1-2 sentence summary of both the résumé and the job.",
         ),
         (
             "human",
@@ -87,7 +95,13 @@ _MATCH_PROMPT = ChatPromptTemplate.from_messages(
 )
 
 
-def _match_chain() -> Runnable:
+def _match_chain(api_key: str | None = None, provider: str | None = None) -> Runnable:
+    # Bring-your-own key: use ONLY the user's provider/key (never fall back to our keys).
+    if api_key and provider:
+        return _MATCH_PROMPT | get_chat_model(
+            provider, api_key=api_key
+        ).with_structured_output(MatchReport)
+
     providers = provider_order()
     if not providers:
         raise RuntimeError("No LLM provider is configured with an API key.")
@@ -103,7 +117,14 @@ def _retrieve(resume_id: int, job_description: str) -> list[str]:
     return query_resume(resume_id, embed_query(job_description), settings.retrieve_top_k)
 
 
-async def match_resume_to_job(resume_id: int, job_description: str) -> MatchReport:
+async def match_resume_to_job(
+    resume_id: int,
+    job_description: str,
+    api_key: str | None = None,
+    provider: str | None = None,
+) -> MatchReport:
     chunks = await run_in_threadpool(_retrieve, resume_id, job_description)
     context = "\n---\n".join(chunks) if chunks else "(no resume content indexed)"
-    return await _match_chain().ainvoke({"job": job_description, "context": context})
+    return await _match_chain(api_key, provider).ainvoke(
+        {"job": job_description, "context": context}
+    )

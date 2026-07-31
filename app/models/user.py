@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Boolean, String, text
+from sqlalchemy import Boolean, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -18,3 +18,7 @@ class User(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=text("true")
     )
+    # Bring-your-own LLM key, encrypted at rest. When set, the user bypasses the daily
+    # free limit (their own key funds their usage).
+    encrypted_api_key: Mapped[str | None] = mapped_column(Text)
+    api_provider: Mapped[str | None] = mapped_column(String(50))

@@ -1,20 +1,20 @@
-"""Background analysis pipeline (Phase 6), instrumented for Prometheus (Phase 7).
+"""Background analysis pipeline: index the résumé, run the RAG match, persist the result.
 
-Runs off the request cycle via FastAPI BackgroundTasks. It opens its OWN DB session (the
-request's session is already closed by the time this runs), indexes the resume, runs the
-RAG match, and writes the result + status back to the `analyses` row. Any failure is
-recorded on the row instead of crashing the worker. Total processing time is measured into
-the `hiresignal_ai_processing_seconds` histogram.
+Runs in the Kafka consumer (its own process/session). If the analysis's owner set a
+bring-your-own LLM key, it is decrypted and used for their request; otherwise the server's
+provider chain is used. Failures are recorded on the row, never crashing the worker.
 """
 
 import time
 
 from fastapi.concurrency import run_in_threadpool
 
+from app.core.crypto import decrypt
 from app.core.metrics import ai_processing_seconds
 from app.db.session import AsyncSessionLocal
 from app.models.analysis import Analysis, AnalysisStatus
 from app.models.resume import Resume
+from app.models.user import User
 from app.services.rag import index_resume, match_resume_to_job
 
 
@@ -30,9 +30,19 @@ async def process_analysis(analysis_id: int) -> None:
         start = time.perf_counter()
         try:
             resume = await db.get(Resume, analysis.resume_id)
-            # Embedding is CPU-bound -> off the event loop.
+
+            # Bring-your-own key (decrypted) if the owner set one.
+            api_key = provider = None
+            if analysis.user_id is not None:
+                user = await db.get(User, analysis.user_id)
+                if user and user.encrypted_api_key:
+                    api_key = decrypt(user.encrypted_api_key)
+                    provider = user.api_provider
+
             await run_in_threadpool(index_resume, resume.id, resume.content_text or "")
-            report = await match_resume_to_job(resume.id, analysis.job_description)
+            report = await match_resume_to_job(
+                resume.id, analysis.job_description, api_key=api_key, provider=provider
+            )
 
             analysis.match_score = report.match_score
             analysis.matched_skills = report.matched_skills
@@ -43,6 +53,8 @@ async def process_analysis(analysis_id: int) -> None:
             analysis.section_suggestions = report.section_suggestions
             analysis.weaknesses = report.weaknesses
             analysis.suggested_bullets = report.suggested_bullets
+            analysis.resume_summary = report.resume_summary
+            analysis.job_summary = report.job_summary
             analysis.status = AnalysisStatus.completed
             analysis.error = None
         except Exception as exc:  # noqa: BLE001 - record failure, keep the worker alive

@@ -1,24 +1,27 @@
-"""AI endpoints (Phases 4-9). All require authentication.
+"""AI endpoints (Phases 4-9 + Round 1). All require authentication.
 
-- Phase 4: /parse-job                     synchronous structured extraction
-- Phase 5: /resumes/index, /match         synchronous RAG
-- Phase 6: /analyze, /analyze/{id}        async: store file -> queue -> background index+match
-- Phase 9: /analyze now publishes to Kafka; a separate consumer service does the work.
+- /parse-job            synchronous structured extraction
+- /resumes/index, /match  synchronous RAG
+- /analyze, /analyze/{id}  async: résumé (saved | upload | paste) + JD -> Kafka -> consumer
 
 Text-in endpoints take form fields so multi-line job descriptions paste cleanly.
 """
 
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.analysis import Analysis, AnalysisStatus
 from app.models.resume import Resume
+from app.models.user import User
 from app.schemas.analysis import AnalysisRead, AnalysisSubmitResponse
 from app.services.events import publish_analysis
 from app.services.extract import SUPPORTED, extract_text
@@ -41,8 +44,8 @@ def _llm_http_error(exc: Exception) -> HTTPException:
     )
 
 
-async def _read_resume(file: UploadFile) -> tuple[bytes, str]:
-    """Validate the upload type, read the bytes, and extract the text."""
+async def _read_upload(file: UploadFile) -> str:
+    """Validate the upload type and return its extracted text."""
     if not (file.filename or "").lower().endswith(SUPPORTED):
         raise HTTPException(
             status_code=400,
@@ -55,7 +58,7 @@ async def _read_resume(file: UploadFile) -> tuple[bytes, str]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not text:
         raise HTTPException(status_code=400, detail="Could not extract text from the file")
-    return data, text
+    return text
 
 
 # ---------- Phase 4: job-description parser ----------
@@ -84,10 +87,12 @@ class IndexResumeResponse(BaseModel):
     status_code=status.HTTP_201_CREATED,
 )
 async def index_resume_endpoint(
-    file: UploadFile = File(...), db: AsyncSession = Depends(get_db)
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    _data, text = await _read_resume(file)
-    resume = Resume(filename=file.filename, content_text=text)
+    text = await _read_upload(file)
+    resume = Resume(user_id=user.id, filename=file.filename, content_text=text)
     db.add(resume)
     await db.commit()
     await db.refresh(resume)
@@ -111,7 +116,7 @@ async def match_endpoint(
         raise _llm_http_error(exc) from exc
 
 
-# ---------- Phase 6/9: async analyze (store file -> Kafka -> consumer index+match) ----------
+# ---------- Round 1: async analyze (saved | upload | paste; daily limit; Kafka) ----------
 
 
 @router.post(
@@ -120,32 +125,73 @@ async def match_endpoint(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def analyze(
-    file: UploadFile = File(...),
-    job_description: str = Form(..., min_length=20),
+    saved_resume_id: int | None = Form(None),
+    resume_file: UploadFile | None = File(None),
+    resume_text: str | None = Form(None),
+    job_file: UploadFile | None = File(None),
+    job_text: str | None = Form(None),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    data, text = await _read_resume(file)
+    # 1) Enforce the daily free limit unless the user brought their own API key.
+    if not user.encrypted_api_key:
+        day_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        used = (
+            await db.execute(
+                select(func.count())
+                .select_from(Analysis)
+                .where(Analysis.user_id == user.id, Analysis.created_at >= day_start)
+            )
+        ).scalar_one()
+        if used >= settings.daily_free_limit:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    f"Daily free limit of {settings.daily_free_limit} reached. Add your own "
+                    "API key in settings for unlimited checks."
+                ),
+            )
 
-    # 1) Persist the ORIGINAL file in object storage (MinIO / S3).
-    key = f"resumes/{uuid4().hex}-{file.filename}"
-    await run_in_threadpool(
-        upload_bytes, key, data, file.content_type or "application/octet-stream"
-    )
+    # 2) Resolve the résumé: a saved one, an on-the-fly upload, or pasted text.
+    if saved_resume_id is not None:
+        resume = await db.get(Resume, saved_resume_id)
+        if resume is None or resume.user_id != user.id:
+            raise HTTPException(status_code=404, detail="Saved résumé not found")
+    elif resume_file is not None and resume_file.filename:
+        text = await _read_upload(resume_file)
+        resume = Resume(user_id=user.id, filename=resume_file.filename, content_text=text)
+        db.add(resume)
+        await db.commit()
+        await db.refresh(resume)
+    elif resume_text:
+        resume = Resume(user_id=user.id, filename="pasted.txt", content_text=resume_text.strip())
+        db.add(resume)
+        await db.commit()
+        await db.refresh(resume)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide a résumé (saved_resume_id, resume_file, or resume_text).",
+        )
 
-    # 2) Record the resume (with its storage key) and a pending analysis.
-    resume = Resume(filename=file.filename, content_text=text, s3_key=key)
-    db.add(resume)
-    await db.commit()
-    await db.refresh(resume)
+    # 3) Resolve the job description: an upload or pasted text.
+    if job_file is not None and job_file.filename:
+        jd = await _read_upload(job_file)
+    elif job_text:
+        jd = job_text.strip()
+    else:
+        raise HTTPException(status_code=400, detail="Provide a job description (job_file or job_text).")
+    if len(jd) < 20:
+        raise HTTPException(status_code=400, detail="Job description is too short.")
 
+    # 4) Create the analysis and publish it to Kafka; the consumer does the heavy work.
     analysis = Analysis(
-        resume_id=resume.id, job_description=job_description, status=AnalysisStatus.pending
+        user_id=user.id, resume_id=resume.id, job_description=jd, status=AnalysisStatus.pending
     )
     db.add(analysis)
     await db.commit()
     await db.refresh(analysis)
 
-    # 3) Publish the job to Kafka; the consumer service does the heavy work.
     try:
         await publish_analysis(analysis.id)
     except Exception as exc:  # noqa: BLE001 - queue unavailable
@@ -155,13 +201,20 @@ async def analyze(
         ) from exc
 
     return AnalysisSubmitResponse(
-        analysis_id=analysis.id, resume_id=resume.id, status=analysis.status, s3_key=key
+        analysis_id=analysis.id,
+        resume_id=resume.id,
+        status=analysis.status,
+        s3_key=resume.s3_key or "",
     )
 
 
 @router.get("/analyze/{analysis_id}", response_model=AnalysisRead)
-async def get_analysis(analysis_id: int, db: AsyncSession = Depends(get_db)):
+async def get_analysis(
+    analysis_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     analysis = await db.get(Analysis, analysis_id)
-    if analysis is None:
+    if analysis is None or (analysis.user_id is not None and analysis.user_id != user.id):
         raise HTTPException(status_code=404, detail="Analysis not found")
     return analysis

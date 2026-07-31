@@ -53,5 +53,6 @@ crash.log
 .DS_Store
 Thumbs.db
 
-# ---- Local-only learning notes (kept off the public repo) ----
+# ---- Local-only notes (kept off the public repo) ----
 docs/learning-notes.md
+docs/CONTINUITY.md

@@ -75,16 +75,16 @@ function Hero() {
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
             <SignalGlyph className="size-4 text-[var(--color-primary)]" />
-            AI résumé & job-fit analyzer
+            AI resume & job-fit analyzer
           </span>
           <h1 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight text-[var(--color-foreground)] sm:text-5xl">
-            See your résumé the way a{" "}
+            See your resume the way a{" "}
             <span className="text-[var(--color-primary)]">recruiter&apos;s ATS</span> does.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--color-muted)]">
-            HireSignal scores your résumé against any job description — surfacing the skills and
+            HireSignal scores your resume against any job description - surfacing the skills and
             keywords you&apos;re missing and rewriting your bullet points. Then edit and export a
-            polished résumé, all in one place.
+            polished resume, all in one place.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href="/register">
@@ -106,7 +106,7 @@ function Hero() {
   );
 }
 
-/** A stylized preview of what HireSignal produces — the match report. */
+/** A stylized preview of what HireSignal produces - the match report. */
 function HeroReportCard() {
   return (
     <div className="relative mx-auto w-full max-w-md">
@@ -195,18 +195,18 @@ function FlowSection() {
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-14 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-stretch">
         <FlowCard
           title="What you bring"
-          items={["Your résumé (PDF, DOCX, or paste)", "A job description to target"]}
+          items={["Your resume (PDF, DOCX, or paste)", "A job description to target"]}
         />
         <Arrow />
         <FlowCard
           title="What HireSignal does"
-          items={["Retrieves & grades your résumé", "Scores fit like a recruiter's ATS", "Self-critiques the feedback"]}
+          items={["Retrieves & grades your resume", "Scores fit like a recruiter's ATS", "Self-critiques the feedback"]}
           highlight
         />
         <Arrow />
         <FlowCard
           title="What you get"
-          items={["Fit score + skill gaps", "Keyword coverage & fixes", "Tailored bullets + editable résumé"]}
+          items={["Fit score + skill gaps", "Keyword coverage & fixes", "Tailored bullets + editable resume"]}
         />
       </div>
     </section>
@@ -257,11 +257,11 @@ function Arrow() {
 /* ----------------------------- Features ----------------------------- */
 
 const FEATURES = [
-  { icon: "🎯", title: "ATS match score", body: "A 0–100 fit score grounded in your actual résumé content — no guesswork." },
+  { icon: "🎯", title: "ATS match score", body: "A 0-100 fit score grounded in your actual resume content - no guesswork." },
   { icon: "🧩", title: "Skill gap analysis", body: "Exactly which required skills you already show and which you're missing." },
-  { icon: "🔑", title: "Keyword coverage", body: "The job's key terms present in your résumé versus the ones you should add." },
+  { icon: "🔑", title: "Keyword coverage", body: "The job's key terms present in your resume versus the ones you should add." },
   { icon: "✍️", title: "AI-tailored bullets", body: "Ready-to-paste, quantified bullet points that weave in the target skills." },
-  { icon: "📝", title: "Live A4 editor", body: "Edit a WYSIWYG résumé, apply suggestions, and export a real PDF or DOCX." },
+  { icon: "📝", title: "Live A4 editor", body: "Edit a WYSIWYG resume, apply suggestions, and export a real PDF or DOCX." },
   { icon: "📊", title: "Application tracker", body: "Keep every analysis with its score, applied status, and outcome in one table." },
 ];
 
@@ -270,10 +270,10 @@ function Features() {
     <section className="mx-auto max-w-6xl px-4 py-16">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">
-          Everything you need to tailor your résumé
+          Everything you need to tailor your resume
         </h2>
         <p className="mt-3 text-[var(--color-muted)]">
-          From a recruiter-grade read of your fit to a finished, exportable résumé.
+          From a recruiter-grade read of your fit to a finished, exportable resume.
         </p>
       </div>
       <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -296,9 +296,9 @@ function Features() {
 
 function HowItWorks() {
   const steps = [
-    { n: "1", title: "Add your résumé & a job post", body: "Upload, paste, or pick a saved résumé, then drop in the job description." },
+    { n: "1", title: "Add your resume & a job post", body: "Upload, paste, or pick a saved resume, then drop in the job description." },
     { n: "2", title: "The AI reads it like a recruiter", body: "An agent retrieves the relevant parts, scores your fit, and self-critiques its feedback." },
-    { n: "3", title: "Get your report & polished résumé", body: "Review your score and fixes, apply tailored bullets, and export a clean PDF or DOCX." },
+    { n: "3", title: "Get your report & polished resume", body: "Review your score and fixes, apply tailored bullets, and export a clean PDF or DOCX." },
   ];
   return (
     <section className="border-t border-[var(--color-border)] bg-white">

@@ -22,7 +22,7 @@ export function AnalysisResults({ a }: { a: Analysis }) {
 
       {(a.resume_summary || a.job_summary) && (
         <div className="grid gap-4 sm:grid-cols-2">
-          {a.resume_summary && <SummaryCard title="Your résumé" body={a.resume_summary} />}
+          {a.resume_summary && <SummaryCard title="Your resume" body={a.resume_summary} />}
           {a.job_summary && <SummaryCard title="The role" body={a.job_summary} />}
         </div>
       )}
@@ -33,8 +33,8 @@ export function AnalysisResults({ a }: { a: Analysis }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ChipsCard title="Keywords present" items={a.keyword_matches} tone="success" empty="—" />
-        <ChipsCard title="Keyword gaps" items={a.keyword_gaps} tone="warning" empty="—" />
+        <ChipsCard title="Keywords present" items={a.keyword_matches} tone="success" empty="-" />
+        <ChipsCard title="Keyword gaps" items={a.keyword_gaps} tone="warning" empty="-" />
       </div>
 
       <ListCard title="Section-by-section fixes" items={a.section_suggestions} />
@@ -139,13 +139,13 @@ function BulletsCard({ items }: { items: string[] | null }) {
       setCopied(i);
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      /* clipboard blocked — ignore */
+      /* clipboard blocked - ignore */
     }
   }
 
   return (
     <Card className="p-6">
-      <h3 className="mb-1 text-base font-semibold">Ready-to-paste résumé bullets</h3>
+      <h3 className="mb-1 text-base font-semibold">Ready-to-paste resume bullets</h3>
       <p className="mb-4 text-sm text-[var(--color-muted)]">
         Tailored to weave in the target skills. Click to copy.
       </p>

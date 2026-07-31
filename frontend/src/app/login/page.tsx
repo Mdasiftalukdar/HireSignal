@@ -36,7 +36,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
-        // Email not verified — send a fresh code and jump to the OTP screen.
+        // Email not verified - send a fresh code and jump to the OTP screen.
         await api("/auth/resend-otp", {
           method: "POST",
           auth: false,
@@ -53,7 +53,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to analyze résumés and track applications."
+      subtitle="Sign in to analyze resumes and track applications."
       footer={
         <>
           New here?{" "}

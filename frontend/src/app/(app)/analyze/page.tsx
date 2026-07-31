@@ -53,13 +53,13 @@ export default function AnalyzePage() {
 
     const fd = new FormData();
     if (resumeMode === "saved") {
-      if (!savedId) return setError("Pick a saved résumé, or choose upload/paste.");
+      if (!savedId) return setError("Pick a saved resume, or choose upload/paste.");
       fd.append("saved_resume_id", savedId);
     } else if (resumeMode === "upload") {
-      if (!resumeFile) return setError("Choose a résumé file, or switch mode.");
+      if (!resumeFile) return setError("Choose a resume file, or switch mode.");
       fd.append("resume_file", resumeFile);
     } else {
-      if (!resumeText.trim()) return setError("Paste your résumé, or switch mode.");
+      if (!resumeText.trim()) return setError("Paste your resume, or switch mode.");
       fd.append("resume_text", resumeText);
     }
 
@@ -119,9 +119,9 @@ export default function AnalyzePage() {
     return (
       <Centered>
         <Spinner className="size-8 text-[var(--color-primary)]" />
-        <p className="text-lg font-semibold">Analyzing your résumé…</p>
+        <p className="text-lg font-semibold">Analyzing your resume…</p>
         <p className="text-sm text-[var(--color-muted)]">
-          Embedding, retrieving, and scoring against the job. This takes ~10–20 seconds.
+          Embedding, retrieving, and scoring against the job. This takes ~10-20 seconds.
         </p>
       </Centered>
     );
@@ -149,9 +149,9 @@ export default function AnalyzePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Analyze a résumé</h1>
+        <h1 className="text-2xl font-bold">Analyze a resume</h1>
         <p className="mt-1 text-[var(--color-muted)]">
-          Compare a résumé against a job description for an AI match report.
+          Compare a resume against a job description for an AI match report.
         </p>
       </div>
 
@@ -159,7 +159,7 @@ export default function AnalyzePage() {
 
       <form onSubmit={submit} className="space-y-6">
         <Card className="p-6">
-          <h2 className="text-lg font-semibold">1. Your résumé</h2>
+          <h2 className="text-lg font-semibold">1. Your resume</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             <Toggle active={resumeMode === "saved"} onClick={() => setResumeMode("saved")} disabled={saved.length === 0}>
               Saved
@@ -176,7 +176,7 @@ export default function AnalyzePage() {
             {resumeMode === "saved" &&
               (saved.length > 0 ? (
                 <>
-                  <Label htmlFor="saved">Choose a saved résumé</Label>
+                  <Label htmlFor="saved">Choose a saved resume</Label>
                   <Select id="saved" value={savedId} onChange={(e) => setSavedId(e.target.value)}>
                     {saved.map((r) => (
                       <option key={r.id} value={r.id}>
@@ -187,7 +187,7 @@ export default function AnalyzePage() {
                 </>
               ) : (
                 <p className="text-sm text-[var(--color-muted)]">
-                  No saved résumés.{" "}
+                  No saved resumes.{" "}
                   <Link href="/settings" className="font-semibold text-[var(--color-primary)]">
                     Add one
                   </Link>{" "}
@@ -202,7 +202,7 @@ export default function AnalyzePage() {
                 rows={7}
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your résumé text…"
+                placeholder="Paste your resume text…"
               />
             )}
           </div>

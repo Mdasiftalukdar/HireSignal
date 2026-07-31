@@ -39,7 +39,7 @@ export default function EditorPage() {
       try {
         initial = await loadServerResume();
       } catch {
-        /* offline / transient — fall back to the local copy */
+        /* offline / transient - fall back to the local copy */
       }
       if (cancelled) return;
       const raw = initial ?? loadResume() ?? defaultResume(user?.full_name ?? "", user?.email ?? "");
@@ -108,7 +108,7 @@ export default function EditorPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Résumé editor</h1>
+          <h1 className="text-2xl font-bold">Resume editor</h1>
           <p className="mt-1 text-[var(--color-muted)]">
             Edit on the left, preview live on the right, export a real PDF or DOCX. Auto-saved to your account.
           </p>
@@ -268,7 +268,7 @@ export default function EditorPage() {
             <Button
               variant="ghost"
               onClick={() => {
-                if (confirm("Reset the résumé to the starter template? This clears your edits."))
+                if (confirm("Reset the resume to the starter template? This clears your edits."))
                   setDoc(defaultResume(user?.full_name ?? "", user?.email ?? ""));
               }}
             >

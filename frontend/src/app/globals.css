@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/*
+  HireSignal design tokens. Tailwind v4 reads @theme to generate utilities
+  (e.g. `bg-primary`, `text-muted`). We commit to a clean light UI so the
+  product looks intentional rather than inheriting the OS dark inversion.
+*/
+@theme {
+  --color-background: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-foreground: #0f172a; /* slate-900 */
+  --color-muted: #64748b;      /* slate-500 */
+  --color-subtle: #94a3b8;     /* slate-400 */
+  --color-border: #e2e8f0;     /* slate-200 */
+  --color-primary: #4f46e5;    /* indigo-600 */
+  --color-primary-hover: #4338ca;
+  --color-primary-soft: #eef2ff;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+
+  --radius-card: 0.9rem;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin, quiet scrollbars that match the palette. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-subtle) transparent;
+}

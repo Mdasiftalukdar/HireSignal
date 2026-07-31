@@ -53,6 +53,9 @@ crash.log
 .DS_Store
 Thumbs.db
 
+# ---- Claude Code (local machine state; launch.json is intentionally tracked) ----
+.claude/settings.local.json
+
 # ---- Local-only notes (kept off the public repo) ----
 docs/learning-notes.md
 docs/CONTINUITY.md

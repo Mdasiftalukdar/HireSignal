@@ -37,7 +37,12 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "http://localhost:3001"
+    # Browser origins allowed to call the API (R3 frontend). Comma-separated.
+    cors_origins: str = (
+        "http://localhost:3001,http://127.0.0.1:3001,"
+        "http://localhost:3000,http://127.0.0.1:3000"
+    )
     smtp_host: str = "mailpit"
     smtp_port: int = 1025
     smtp_from: str = "no-reply@hiresignal.local"
@@ -78,6 +83,12 @@ class Settings(BaseSettings):
     kafka_bootstrap_servers: str = "kafka:9092"
     kafka_topic_analysis: str = "resume-analysis"
     kafka_consumer_group: str = "analysis-workers"
+
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """CORS origins as a clean list (drops blanks/whitespace)."""
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
 # Import this singleton everywhere: `from app.core.config import settings`

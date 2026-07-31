@@ -104,6 +104,43 @@ export function defaultResume(name = "", email = ""): ResumeDoc {
   };
 }
 
+/**
+ * Coerce any stored/partial object into a complete ResumeDoc so the editor and
+ * preview never hit an undefined field (e.g. an older save missing `summary`).
+ */
+export function normalizeResume(
+  d: Partial<ResumeDoc> | null | undefined,
+  fallbackName = "",
+  fallbackEmail = "",
+): ResumeDoc {
+  const base = defaultResume(fallbackName, fallbackEmail);
+  if (!d || typeof d !== "object") return base;
+  return {
+    fullName: d.fullName ?? base.fullName,
+    headline: d.headline ?? "",
+    email: d.email ?? "",
+    phone: d.phone ?? "",
+    location: d.location ?? "",
+    website: d.website ?? "",
+    summary: d.summary ?? "",
+    sections: Array.isArray(d.sections)
+      ? d.sections.map((s) => ({
+          id: s?.id ?? uid(),
+          heading: s?.heading ?? "Section",
+          entries: Array.isArray(s?.entries)
+            ? s.entries.map((e) => ({
+                id: e?.id ?? uid(),
+                title: e?.title ?? "",
+                subtitle: e?.subtitle ?? "",
+                meta: e?.meta ?? "",
+                bullets: Array.isArray(e?.bullets) ? e.bullets.map((b) => String(b ?? "")) : [],
+              }))
+            : [],
+        }))
+      : base.sections,
+  };
+}
+
 export function loadResume(): ResumeDoc | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -121,4 +158,17 @@ export function saveResume(doc: ResumeDoc) {
 
 export function contactLine(doc: ResumeDoc): string {
   return [doc.email, doc.phone, doc.location, doc.website].filter(Boolean).join("  •  ");
+}
+
+// ---- Server-side persistence (syncs the doc across devices) ----
+
+import { api } from "@/lib/api";
+
+export async function loadServerResume(): Promise<ResumeDoc | null> {
+  const res = await api<{ data: ResumeDoc | null }>("/me/resume-doc");
+  return res.data;
+}
+
+export async function saveServerResume(doc: ResumeDoc): Promise<void> {
+  await api("/me/resume-doc", { method: "PUT", body: { json: doc } });
 }

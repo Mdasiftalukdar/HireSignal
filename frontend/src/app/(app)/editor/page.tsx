@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Card, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -9,26 +9,67 @@ import {
   contactLine,
   defaultResume,
   loadResume,
+  loadServerResume,
   newEntry,
   newSection,
+  normalizeResume,
   saveResume,
+  saveServerResume,
   type ResumeDoc,
   type ResumeEntry,
   type ResumeSection,
 } from "@/lib/resume-doc";
+
+type SaveState = "idle" | "saving" | "saved" | "error";
 import type { Analysis, TrackerItem } from "@/lib/types";
 
 export default function EditorPage() {
   const { user } = useAuth();
   const [doc, setDoc] = useState<ResumeDoc | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const lastSavedRef = useRef<string>("");
+  const hydratedRef = useRef(false);
 
+  // Hydrate once: prefer the server copy, fall back to localStorage, then a template.
   useEffect(() => {
-    setDoc(loadResume() ?? defaultResume(user?.full_name ?? "", user?.email ?? ""));
+    if (hydratedRef.current) return;
+    let cancelled = false;
+    (async () => {
+      let initial: ResumeDoc | null = null;
+      try {
+        initial = await loadServerResume();
+      } catch {
+        /* offline / transient — fall back to the local copy */
+      }
+      if (cancelled) return;
+      const raw = initial ?? loadResume() ?? defaultResume(user?.full_name ?? "", user?.email ?? "");
+      const d = normalizeResume(raw, user?.full_name ?? "", user?.email ?? "");
+      lastSavedRef.current = JSON.stringify(d);
+      hydratedRef.current = true;
+      setDoc(d);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
-  // Auto-save to localStorage on every change.
+  // Cache to localStorage instantly; debounce-save to the server when it changed.
   useEffect(() => {
-    if (doc) saveResume(doc);
+    if (!doc || !hydratedRef.current) return;
+    saveResume(doc);
+    const json = JSON.stringify(doc);
+    if (json === lastSavedRef.current) return;
+    setSaveState("saving");
+    const t = setTimeout(async () => {
+      try {
+        await saveServerResume(doc);
+        lastSavedRef.current = json;
+        setSaveState("saved");
+      } catch {
+        setSaveState("error");
+      }
+    }, 800);
+    return () => clearTimeout(t);
   }, [doc]);
 
   if (!doc) {
@@ -69,10 +110,11 @@ export default function EditorPage() {
         <div>
           <h1 className="text-2xl font-bold">Résumé editor</h1>
           <p className="mt-1 text-[var(--color-muted)]">
-            Edit on the left, preview live on the right, export a real PDF or DOCX. Saved in your browser.
+            Edit on the left, preview live on the right, export a real PDF or DOCX. Auto-saved to your account.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <SaveIndicator state={saveState} />
           <Button variant="secondary" onClick={() => exportDocx(doc)}>
             Export DOCX
           </Button>
@@ -242,6 +284,17 @@ export default function EditorPage() {
       </div>
     </div>
   );
+}
+
+function SaveIndicator({ state }: { state: SaveState }) {
+  if (state === "idle") return null;
+  const map: Record<Exclude<SaveState, "idle">, { text: string; cls: string }> = {
+    saving: { text: "Saving…", cls: "text-[var(--color-subtle)]" },
+    saved: { text: "Saved to your account", cls: "text-[var(--color-success)]" },
+    error: { text: "Saved locally (offline)", cls: "text-[var(--color-warning)]" },
+  };
+  const { text, cls } = map[state];
+  return <span className={`text-xs font-medium ${cls}`}>{text}</span>;
 }
 
 /* ---------------- Live preview (mirrors the exported layout) ---------------- */

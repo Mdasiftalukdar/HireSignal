@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
@@ -15,6 +15,7 @@ from app.core.crypto import encrypt
 from app.db.session import get_db
 from app.models.analysis import Analysis, DecisionStatus
 from app.models.resume import Resume
+from app.models.resume_document import ResumeDocument
 from app.models.user import User
 from app.services.extract import SUPPORTED, extract_text
 from app.services.rag import index_resume
@@ -249,4 +250,40 @@ async def update_tracking(
         a.applied = payload.applied
     if payload.decision is not None:
         a.decision = payload.decision
+    await db.commit()
+
+
+# ---------------- Résumé editor document (one per user) ----------------
+
+
+async def _get_resume_doc(db: AsyncSession, user_id: int) -> ResumeDocument | None:
+    return (
+        await db.execute(select(ResumeDocument).where(ResumeDocument.user_id == user_id))
+    ).scalar_one_or_none()
+
+
+@router.get("/resume-doc")
+async def get_resume_doc(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    """Return the user's saved résumé document (or null if they have none yet)."""
+    row = await _get_resume_doc(db, user.id)
+    return {
+        "data": row.data if row else None,
+        "updated_at": row.updated_at if row else None,
+    }
+
+
+@router.put("/resume-doc", status_code=status.HTTP_204_NO_CONTENT)
+async def put_resume_doc(
+    data: dict = Body(..., description="The full résumé document as a JSON object"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upsert the user's résumé document (the editor auto-saves the whole blob)."""
+    row = await _get_resume_doc(db, user.id)
+    if row is None:
+        db.add(ResumeDocument(user_id=user.id, data=data))
+    else:
+        row.data = data
     await db.commit()

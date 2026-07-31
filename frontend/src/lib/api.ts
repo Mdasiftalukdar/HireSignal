@@ -90,3 +90,71 @@ export async function api<T>(path: string, opts: Options = {}): Promise<T> {
 
   return data as T;
 }
+
+/*
+  Consume a Server-Sent Events stream via fetch + ReadableStream. We use fetch
+  (not EventSource) specifically so we can send the Bearer token in a header
+  instead of leaking it in the URL. Resolves when the stream ends; abort via the
+  provided AbortSignal.
+*/
+export async function streamSSE<T>(
+  path: string,
+  handlers: { onMessage: (data: T) => void; onError?: (detail: string) => void },
+  signal: AbortSignal,
+): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    handlers.onError?.(`Stream failed (${res.status})`);
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const dispatch = (block: string) => {
+    let event = "message";
+    const dataLines: string[] = [];
+    for (const line of block.split("\n")) {
+      if (!line || line.startsWith(":")) continue; // comment / heartbeat
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length === 0) return;
+    const raw = dataLines.join("\n");
+    if (event === "error" || event === "timeout") {
+      try {
+        handlers.onError?.(JSON.parse(raw).detail ?? "Stream error");
+      } catch {
+        handlers.onError?.("Stream error");
+      }
+      return;
+    }
+    try {
+      handlers.onMessage(JSON.parse(raw) as T);
+    } catch {
+      /* ignore unparseable frame */
+    }
+  };
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx: number;
+      while ((idx = buffer.indexOf("\n\n")) >= 0) {
+        dispatch(buffer.slice(0, idx));
+        buffer = buffer.slice(idx + 2);
+      }
+    }
+  } catch (err) {
+    if (!(err instanceof DOMException && err.name === "AbortError")) {
+      handlers.onError?.("Connection lost");
+    }
+  }
+}

@@ -24,13 +24,7 @@ export interface SavedResume {
 }
 
 export type AnalysisStatus = "pending" | "processing" | "completed" | "failed";
-export type Decision =
-  | "none"
-  | "applied"
-  | "interview"
-  | "offer"
-  | "rejected"
-  | "accepted";
+export type Decision = "under_review" | "selected" | "not_selected";
 
 export interface Analysis {
   id: number;

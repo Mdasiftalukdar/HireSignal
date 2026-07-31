@@ -1,10 +1,325 @@
-import { Placeholder } from "@/components/Placeholder";
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Input,
+  Label,
+  Select,
+  Spinner,
+  Textarea,
+} from "@/components/ui";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import type { SavedResume, Usage } from "@/lib/types";
+
+const PROVIDERS = ["openrouter", "openai", "anthropic", "google", "deepseek"];
+const MAX_SAVED = 3;
 
 export default function SettingsPage() {
   return (
-    <Placeholder
-      title="Settings"
-      note="Manage your saved résumés and bring-your-own LLM API key."
-    />
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--color-foreground)]">Settings</h1>
+        <p className="mt-1 text-[var(--color-muted)]">
+          Bring your own LLM key for unlimited checks, and manage saved résumés.
+        </p>
+      </div>
+      <ApiKeyCard />
+      <SavedResumesCard />
+    </div>
+  );
+}
+
+/* ---------------- Bring-your-own API key ---------------- */
+
+function ApiKeyCard() {
+  const { refresh } = useAuth();
+  const [hasKey, setHasKey] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [provider, setProvider] = useState("openrouter");
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+
+  async function load() {
+    const usage = await api<Usage>("/me/usage");
+    setHasKey(usage.has_api_key);
+    setLoading(false);
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    setBusy(true);
+    try {
+      await api("/me/api-key", {
+        method: "PUT",
+        body: { json: { api_key: key.trim(), provider } },
+      });
+      setKey("");
+      setMsg({ tone: "success", text: "API key saved. You now have unlimited checks." });
+      await load();
+      await refresh();
+    } catch (err) {
+      setMsg({ tone: "danger", text: err instanceof Error ? err.message : "Failed to save key" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setMsg(null);
+    setBusy(true);
+    try {
+      await api("/me/api-key", { method: "DELETE" });
+      setMsg({ tone: "success", text: "API key removed. Back to the free daily limit." });
+      await load();
+      await refresh();
+    } catch (err) {
+      setMsg({ tone: "danger", text: err instanceof Error ? err.message : "Failed to remove key" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">LLM API key</h2>
+        {hasKey ? <Badge tone="success">Key set · unlimited</Badge> : <Badge>Free · 2/day</Badge>}
+      </div>
+      <p className="mt-1 text-sm text-[var(--color-muted)]">
+        Your key is <strong>encrypted at rest</strong> and only used to run your own analyses.
+      </p>
+
+      {loading ? (
+        <div className="py-6">
+          <Spinner className="size-5 text-[var(--color-primary)]" />
+        </div>
+      ) : (
+        <>
+          {msg && (
+            <div className="mt-4">
+              <Alert tone={msg.tone}>{msg.text}</Alert>
+            </div>
+          )}
+          <form onSubmit={save} className="mt-4 grid gap-4 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+            <div>
+              <Label htmlFor="provider">Provider</Label>
+              <Select
+                id="provider"
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+              >
+                {PROVIDERS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="key">{hasKey ? "Replace key" : "API key"}</Label>
+              <Input
+                id="key"
+                type="password"
+                autoComplete="off"
+                required
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="sk-… / your provider key"
+              />
+            </div>
+            <Button type="submit" loading={busy}>
+              {hasKey ? "Update" : "Save key"}
+            </Button>
+          </form>
+
+          {hasKey && (
+            <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+              <Button variant="danger" onClick={remove} loading={busy}>
+                Remove key
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+/* ---------------- Saved résumés (≤3, labeled) ---------------- */
+
+function SavedResumesCard() {
+  const [resumes, setResumes] = useState<SavedResume[] | null>(null);
+  const [label, setLabel] = useState("");
+  const [mode, setMode] = useState<"file" | "text">("file");
+  const [file, setFile] = useState<File | null>(null);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    setResumes(await api<SavedResume[]>("/me/resumes"));
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (mode === "file" && !file) {
+      setError("Choose a file, or switch to paste.");
+      return;
+    }
+    if (mode === "text" && !text.trim()) {
+      setError("Paste your résumé text, or switch to file.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("label", label);
+      if (mode === "file" && file) fd.append("file", file);
+      if (mode === "text") fd.append("text", text);
+      await api("/me/resumes", { method: "POST", body: { formData: fd } });
+      setLabel("");
+      setFile(null);
+      setText("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save résumé");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function del(id: number) {
+    await api(`/me/resumes/${id}`, { method: "DELETE" });
+    await load();
+  }
+
+  const count = resumes?.length ?? 0;
+  const atCap = count >= MAX_SAVED;
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Saved résumés</h2>
+        <Badge tone={atCap ? "warning" : "neutral"}>
+          {count} / {MAX_SAVED}
+        </Badge>
+      </div>
+      <p className="mt-1 text-sm text-[var(--color-muted)]">
+        Keep up to {MAX_SAVED} labeled résumés to reuse in the Analyze flow.
+      </p>
+
+      {resumes === null ? (
+        <div className="py-6">
+          <Spinner className="size-5 text-[var(--color-primary)]" />
+        </div>
+      ) : (
+        <ul className="mt-4 divide-y divide-[var(--color-border)]">
+          {resumes.length === 0 && (
+            <li className="py-4 text-sm text-[var(--color-subtle)]">No saved résumés yet.</li>
+          )}
+          {resumes.map((r) => (
+            <li key={r.id} className="flex items-center justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate font-medium text-[var(--color-foreground)]">{r.label}</p>
+                <p className="truncate text-xs text-[var(--color-subtle)]">{r.filename}</p>
+              </div>
+              <Button variant="ghost" onClick={() => del(r.id)} className="text-[var(--color-danger)]">
+                Delete
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!atCap && (
+        <form onSubmit={add} className="mt-5 space-y-4 border-t border-[var(--color-border)] pt-5">
+          <h3 className="text-sm font-semibold">Add a résumé</h3>
+          {error && <Alert>{error}</Alert>}
+          <div>
+            <Label htmlFor="label">Label</Label>
+            <Input
+              id="label"
+              required
+              maxLength={100}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="e.g. Backend Engineer — 2026"
+            />
+          </div>
+          <div className="flex gap-2">
+            <ModeToggle active={mode === "file"} onClick={() => setMode("file")}>
+              Upload file
+            </ModeToggle>
+            <ModeToggle active={mode === "text"} onClick={() => setMode("text")}>
+              Paste text
+            </ModeToggle>
+          </div>
+          {mode === "file" ? (
+            <div>
+              <Label htmlFor="file">Résumé file (PDF, DOCX, TXT)</Label>
+              <input
+                id="file"
+                type="file"
+                accept=".pdf,.docx,.txt,.md"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-[var(--color-muted)] file:mr-4 file:rounded-lg file:border-0 file:bg-[var(--color-primary-soft)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[var(--color-primary-hover)] hover:file:bg-indigo-100"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="text">Résumé text</Label>
+              <Textarea
+                id="text"
+                rows={6}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Paste your résumé here…"
+              />
+            </div>
+          )}
+          <Button type="submit" loading={busy}>
+            Save résumé
+          </Button>
+        </form>
+      )}
+    </Card>
+  );
+}
+
+function ModeToggle({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-lg bg-[var(--color-primary-soft)] px-3 py-1.5 text-sm font-semibold text-[var(--color-primary-hover)]"
+          : "rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-muted)] hover:bg-slate-100"
+      }
+    >
+      {children}
+    </button>
   );
 }

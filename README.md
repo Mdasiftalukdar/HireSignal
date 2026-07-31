@@ -50,6 +50,7 @@ flowchart LR
 - 🧵 **Async analysis pipeline** — `POST /analyze` returns instantly; embedding + matching run in the background (poll for status)
 - ☁️ **Object storage (S3 / MinIO)** — original résumés persisted via the S3 API; the same code targets AWS S3
 - 📄 **Multi-format uploads** — PDF, DOCX, and TXT résumés (or paste text)
+- 🔑 **Sign in with Google** (OAuth2 / OIDC) + email OTP verification for password signups
 - 👤 **Per-user accounts** — up to 3 saved résumés, bring-your-own LLM key (encrypted) for unlimited use or a daily free limit, with usage counters
 - 🗂️ **Usage tracker** — every check saved with résumé/JD summaries + applied/decision status
 - 📈 **Observability** — Prometheus metrics + provisioned Grafana dashboards (request rate, P95 latency, cache hit ratio, AI processing time)

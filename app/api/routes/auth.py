@@ -1,50 +1,98 @@
-"""Authentication endpoints: register, login (issue JWT), and 'me' (protected)."""
+"""Authentication: email/password (with OTP verification) and Google OAuth."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
+from app.core.oauth import oauth
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.user import Token, UserCreate, UserRead
+from app.schemas.user import (
+    EmailIn,
+    OtpVerify,
+    RegisterResponse,
+    Token,
+    UserCreate,
+    UserRead,
+)
+from app.services.email import send_otp_email
+from app.services.otp import create_otp, verify_otp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+async def _get_by_email(db: AsyncSession, email: str) -> User | None:
+    return (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+
+
+# ---------- Email / password (+ OTP verification) ----------
+
+
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(User).where(User.email == payload.email))
-    if existing.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
-        )
+    if await _get_by_email(db, payload.email) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
     user = User(
         email=payload.email,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
+        email_verified=False,
+        auth_provider="email",
     )
     db.add(user)
     await db.commit()
-    await db.refresh(user)
-    return user
+    code = await create_otp(payload.email)
+    await send_otp_email(payload.email, code)
+    return RegisterResponse(message="Verification code sent to your email.", email=payload.email)
+
+
+@router.post("/verify-otp", response_model=Token)
+async def verify_email_otp(payload: OtpVerify, db: AsyncSession = Depends(get_db)):
+    user = await _get_by_email(db, payload.email)
+    if user is None:
+        raise HTTPException(status_code=404, detail="No account for that email")
+    if not await verify_otp(payload.email, payload.code):
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code")
+    user.email_verified = True
+    await db.commit()
+    return Token(access_token=create_access_token(subject=str(user.id)))
+
+
+@router.post("/resend-otp", response_model=RegisterResponse)
+async def resend_otp(payload: EmailIn, db: AsyncSession = Depends(get_db)):
+    user = await _get_by_email(db, payload.email)
+    if user is not None and not user.email_verified:
+        code = await create_otp(payload.email)
+        await send_otp_email(payload.email, code)
+    # Same response regardless, so we don't reveal which emails exist.
+    return RegisterResponse(
+        message="If that email needs verification, a new code was sent.", email=payload.email
+    )
 
 
 @router.post("/login", response_model=Token)
 async def login(
-    form: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
+    form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
-    # OAuth2 form uses the field name "username"; we treat it as the email.
-    result = await db.execute(select(User).where(User.email == form.username))
-    user = result.scalar_one_or_none()
-    if user is None or not verify_password(form.password, user.hashed_password):
+    user = await _get_by_email(db, form.username)
+    if (
+        user is None
+        or not user.hashed_password
+        or not verify_password(form.password, user.hashed_password)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify the code sent to your email.",
         )
     return Token(access_token=create_access_token(subject=str(user.id)))
 
@@ -52,3 +100,47 @@ async def login(
 @router.get("/me", response_model=UserRead)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+# ---------- Google OAuth (Authorization Code flow) ----------
+
+
+@router.get("/google/login")
+async def google_login(request: Request):
+    if not settings.google_client_id:
+        raise HTTPException(status_code=503, detail="Google login is not configured.")
+    return await oauth.google.authorize_redirect(request, settings.google_redirect_uri)
+
+
+@router.get("/google/callback", response_model=Token)
+async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=400, detail=f"Google authentication failed: {exc.__class__.__name__}"
+        ) from exc
+
+    info = token.get("userinfo") or {}
+    email = info.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Google did not return an email address.")
+
+    user = await _get_by_email(db, email)
+    if user is None:
+        user = User(
+            email=email,
+            hashed_password=None,
+            full_name=info.get("name"),
+            email_verified=True,
+            auth_provider="google",
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    elif not user.email_verified:
+        user.email_verified = True  # Google verified the address
+        await db.commit()
+
+    # No frontend yet -> return the JWT as JSON. (R3 will redirect to the SPA with it.)
+    return Token(access_token=create_access_token(subject=str(user.id)))

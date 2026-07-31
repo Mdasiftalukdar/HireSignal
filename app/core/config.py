@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     daily_free_limit: int = 2  # analyses/day without a bring-your-own API key
     max_saved_resumes: int = 3
 
+    # Google OAuth + email OTP (Round 2)
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+    frontend_url: str = "http://localhost:3000"
+    smtp_host: str = "mailpit"
+    smtp_port: int = 1025
+    smtp_from: str = "no-reply@hiresignal.local"
+    otp_ttl_seconds: int = 600
+
     # LLM (Phase 4) - provider-agnostic with automatic fallback
     llm_provider: str = "openrouter"
     llm_fallback_providers: str = "google,deepseek"  # tried in order on failure

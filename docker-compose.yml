@@ -153,6 +153,15 @@ services:
     networks:
       - hiresignal
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hiresignal_mailpit
+    ports:
+      - "8025:8025"   # web inbox -> http://localhost:8025
+      - "1025:1025"   # SMTP
+    networks:
+      - hiresignal
+
 volumes:
   pgdata:
   redisdata:

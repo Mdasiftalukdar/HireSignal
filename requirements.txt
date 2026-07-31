@@ -40,3 +40,8 @@ aiokafka>=0.11,<0.13
 
 # ---- Phase 10: GraphQL ----
 strawberry-graphql[fastapi]>=0.235,<1
+
+# ---- Round 2: OAuth (Google) + sessions ----
+authlib>=1.3,<2
+itsdangerous>=2,<3
+httpx>=0.27,<1

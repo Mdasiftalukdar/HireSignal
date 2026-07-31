@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 
 from app.api.routes import ai, applications, auth, jobs, me, resumes
@@ -37,6 +38,9 @@ app = FastAPI(
     description="AI-powered job application tracker & resume analyzer.",
     lifespan=lifespan,
 )
+
+# Signed session cookie - required by Authlib's OAuth state/nonce handling.
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 # Mount versioned API routers (endpoints live under /api/v1).
 app.include_router(auth.router, prefix="/api/v1")

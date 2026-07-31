@@ -1,0 +1,19 @@
+"""Authlib OAuth client registry.
+
+Google is registered via OpenID Connect discovery, so Authlib fetches Google's endpoints
+and public keys automatically and validates the returned id_token for us.
+"""
+
+from authlib.integrations.starlette_client import OAuth
+
+from app.core.config import settings
+
+oauth = OAuth()
+
+oauth.register(
+    name="google",
+    client_id=settings.google_client_id,
+    client_secret=settings.google_client_secret,
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={"scope": "openid email profile"},
+)

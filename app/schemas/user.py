@@ -22,9 +22,24 @@ class UserRead(BaseModel):
     email: EmailStr
     full_name: str | None = None
     is_active: bool
+    email_verified: bool = True
     created_at: datetime
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class RegisterResponse(BaseModel):
+    message: str
+    email: EmailStr
+
+
+class OtpVerify(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=8)
+
+
+class EmailIn(BaseModel):
+    email: EmailStr

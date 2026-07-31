@@ -18,6 +18,21 @@ _KEY_ATTR = {
     "google": "google_api_key",
     "anthropic": "anthropic_api_key",
     "deepseek": "deepseek_api_key",
+    "groq": "groq_api_key",
+    "mistral": "mistral_api_key",
+    "together": "together_api_key",
+    "xai": "xai_api_key",
+    "perplexity": "perplexity_api_key",
+}
+
+# Providers that speak the OpenAI API - reuse ChatOpenAI with a different base URL.
+# Maps provider -> (model setting, base-URL setting, server-key setting).
+_OPENAI_COMPATIBLE = {
+    "groq": ("groq_model", "groq_base_url", "groq_api_key"),
+    "mistral": ("mistral_model", "mistral_base_url", "mistral_api_key"),
+    "together": ("together_model", "together_base_url", "together_api_key"),
+    "xai": ("xai_model", "xai_base_url", "xai_api_key"),
+    "perplexity": ("perplexity_model", "perplexity_base_url", "perplexity_api_key"),
 }
 
 
@@ -80,6 +95,18 @@ def get_chat_model(
             model=settings.anthropic_model,
             api_key=api_key or settings.anthropic_api_key,
             temperature=temperature,
+        )
+
+    if provider in _OPENAI_COMPATIBLE:
+        from langchain_openai import ChatOpenAI
+
+        model_attr, base_attr, key_attr = _OPENAI_COMPATIBLE[provider]
+        return ChatOpenAI(
+            model=getattr(settings, model_attr),
+            api_key=api_key or getattr(settings, key_attr),
+            base_url=getattr(settings, base_attr),
+            temperature=temperature,
+            max_retries=0,
         )
 
     raise ValueError(f"Unsupported LLM provider: {provider!r}")

@@ -27,7 +27,7 @@ export default function DashboardPage() {
           Welcome back, {firstName} 👋
         </h1>
         <p className="mt-1 text-[var(--color-muted)]">
-          Here&apos;s your résumé-analysis activity at a glance.
+          Here&apos;s your resume-analysis activity at a glance.
         </p>
       </div>
 
@@ -56,7 +56,18 @@ export default function DashboardPage() {
                   <Badge tone="neutral">No key</Badge>
                 )
               }
-              hint={usage.has_api_key ? "Using your own LLM key" : "Add a key for unlimited checks"}
+              hint={
+                usage.has_api_key ? (
+                  "Using your own LLM key"
+                ) : (
+                  <Link
+                    href="/settings"
+                    className="font-semibold text-[var(--color-primary)] hover:underline"
+                  >
+                    Add a key for unlimited checks
+                  </Link>
+                )
+              }
             />
           </div>
 
@@ -79,13 +90,13 @@ export default function DashboardPage() {
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link href="/analyze">
-                <Button>Analyze a résumé</Button>
+                <Button>Analyze a resume</Button>
               </Link>
               <Link href="/tracker">
                 <Button variant="secondary">View application tracker</Button>
               </Link>
               <Link href="/settings">
-                <Button variant="secondary">Manage saved résumés</Button>
+                <Button variant="secondary">Manage saved resumes</Button>
               </Link>
             </div>
           </Card>
@@ -105,7 +116,7 @@ function StatCard({
 }: {
   label: string;
   value: string;
-  hint?: string;
+  hint?: React.ReactNode;
   badge?: React.ReactNode;
 }) {
   return (

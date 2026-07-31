@@ -1,4 +1,4 @@
-"""Per-user account endpoints (Round 1): saved résumés, BYO API key, usage, tracker."""
+"""Per-user account endpoints (Round 1): saved resumes, BYO API key, usage, tracker."""
 
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -24,10 +24,13 @@ from app.services.vectorstore import delete_resume
 
 router = APIRouter(prefix="/me", tags=["me"], dependencies=[Depends(get_current_user)])
 
-_VALID_PROVIDERS = {"openrouter", "openai", "anthropic", "google", "deepseek"}
+_VALID_PROVIDERS = {
+    "openrouter", "openai", "anthropic", "google", "deepseek",
+    "groq", "mistral", "together", "xai", "perplexity",
+}
 
 
-# ---------------- Saved résumés (<= max_saved_resumes) ----------------
+# ---------------- Saved resumes (<= max_saved_resumes) ----------------
 
 
 class SavedResumeOut(BaseModel):
@@ -69,7 +72,7 @@ async def save_resume(
     if count >= settings.max_saved_resumes:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"You can save at most {settings.max_saved_resumes} résumés. Delete one first.",
+            detail=f"You can save at most {settings.max_saved_resumes} resumes. Delete one first.",
         )
 
     filename, s3_key = "pasted.txt", None
@@ -89,9 +92,9 @@ async def save_resume(
     elif text:
         content = text.strip()
     else:
-        raise HTTPException(400, "Provide a résumé file or text.")
+        raise HTTPException(400, "Provide a resume file or text.")
     if not content:
-        raise HTTPException(400, "Could not read any résumé text.")
+        raise HTTPException(400, "Could not read any resume text.")
 
     resume = Resume(
         user_id=user.id, label=label, filename=filename, content_text=content, s3_key=s3_key
@@ -109,7 +112,7 @@ async def delete_saved_resume(
 ):
     resume = await db.get(Resume, resume_id)
     if resume is None or resume.user_id != user.id:
-        raise HTTPException(404, "Résumé not found")
+        raise HTTPException(404, "Resume not found")
     if resume.s3_key:
         await run_in_threadpool(delete_object, resume.s3_key)
     await run_in_threadpool(delete_resume, resume.id)  # remove Chroma chunks
@@ -253,7 +256,7 @@ async def update_tracking(
     await db.commit()
 
 
-# ---------------- Résumé editor document (one per user) ----------------
+# ---------------- Resume editor document (one per user) ----------------
 
 
 async def _get_resume_doc(db: AsyncSession, user_id: int) -> ResumeDocument | None:
@@ -266,7 +269,7 @@ async def _get_resume_doc(db: AsyncSession, user_id: int) -> ResumeDocument | No
 async def get_resume_doc(
     user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
-    """Return the user's saved résumé document (or null if they have none yet)."""
+    """Return the user's saved resume document (or null if they have none yet)."""
     row = await _get_resume_doc(db, user.id)
     return {
         "data": row.data if row else None,
@@ -276,11 +279,11 @@ async def get_resume_doc(
 
 @router.put("/resume-doc", status_code=status.HTTP_204_NO_CONTENT)
 async def put_resume_doc(
-    data: dict = Body(..., description="The full résumé document as a JSON object"),
+    data: dict = Body(..., description="The full resume document as a JSON object"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upsert the user's résumé document (the editor auto-saves the whole blob)."""
+    """Upsert the user's resume document (the editor auto-saves the whole blob)."""
     row = await _get_resume_doc(db, user.id)
     if row is None:
         db.add(ResumeDocument(user_id=user.id, data=data))

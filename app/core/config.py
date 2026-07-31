@@ -69,6 +69,22 @@ class Settings(BaseSettings):
     deepseek_api_key: str | None = None
     deepseek_model: str = "deepseek-chat"
     deepseek_base_url: str = "https://api.deepseek.com"
+    # Additional OpenAI-compatible providers (usable as a bring-your-own key).
+    groq_api_key: str | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    mistral_api_key: str | None = None
+    mistral_model: str = "mistral-small-latest"
+    mistral_base_url: str = "https://api.mistral.ai/v1"
+    together_api_key: str | None = None
+    together_model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+    together_base_url: str = "https://api.together.xyz/v1"
+    xai_api_key: str | None = None
+    xai_model: str = "grok-2-latest"
+    xai_base_url: str = "https://api.x.ai/v1"
+    perplexity_api_key: str | None = None
+    perplexity_model: str = "sonar"
+    perplexity_base_url: str = "https://api.perplexity.ai"
 
     # RAG (Phase 5)
     embedding_model: str = "all-MiniLM-L6-v2"

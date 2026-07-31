@@ -16,8 +16,9 @@ from app.db.session import AsyncSessionLocal
 from app.models.analysis import Analysis, AnalysisStatus
 from app.models.resume import Resume
 from app.models.user import User
+from app.core.config import settings
 from app.services.agent import analyze_resume_agent
-from app.services.rag import index_resume
+from app.services.rag import index_resume, match_resume_to_job
 
 log = logging.getLogger("hiresignal.analysis")
 
@@ -44,13 +45,23 @@ async def process_analysis(analysis_id: int) -> None:
                     provider = user.api_provider
 
             await run_in_threadpool(index_resume, resume.id, resume.content_text or "")
-            # R4: run the async /analyze through the LangGraph agent (retrieve -> grade ->
-            # generate -> self-critique -> finalize). The synchronous /ai/match endpoint
-            # still uses the plain LangChain chain in rag.py.
-            report, steps = await analyze_resume_agent(
-                resume.id, analysis.job_description, api_key=api_key, provider=provider
-            )
-            log.info("analysis %s agent path: %s", analysis_id, " -> ".join(steps))
+
+            # Cost control: the LangGraph agent makes several LLM calls (grade +
+            # generate + critique, plus any loops); the plain LangChain chain makes
+            # one. Gate the agent by policy so the free tier (our key) stays cheap.
+            mode = settings.analyze_agent_mode.lower()
+            use_agent = mode == "always" or (mode == "byok" and api_key is not None)
+
+            if use_agent:
+                report, steps = await analyze_resume_agent(
+                    resume.id, analysis.job_description, api_key=api_key, provider=provider
+                )
+                log.info("analysis %s agent path: %s", analysis_id, " -> ".join(steps))
+            else:
+                report = await match_resume_to_job(
+                    resume.id, analysis.job_description, api_key=api_key, provider=provider
+                )
+                log.info("analysis %s simple LangChain path (mode=%s)", analysis_id, mode)
 
             analysis.match_score = report.match_score
             analysis.matched_skills = report.matched_skills

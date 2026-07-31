@@ -37,6 +37,11 @@ class Analysis(Base, TimestampMixin):
     matched_skills: Mapped[list | None] = mapped_column(JSONB)
     missing_skills: Mapped[list | None] = mapped_column(JSONB)
     recommendation: Mapped[str | None] = mapped_column(Text)
+    keyword_matches: Mapped[list | None] = mapped_column(JSONB)
+    keyword_gaps: Mapped[list | None] = mapped_column(JSONB)
+    section_suggestions: Mapped[list | None] = mapped_column(JSONB)
+    weaknesses: Mapped[list | None] = mapped_column(JSONB)
+    suggested_bullets: Mapped[list | None] = mapped_column(JSONB)
     error: Mapped[str | None] = mapped_column(Text)
 
     resume: Mapped["Resume"] = relationship()

@@ -23,6 +23,11 @@ class AnalysisRead(BaseModel):
     match_score: int | None = None
     matched_skills: list[str] | None = None
     missing_skills: list[str] | None = None
+    keyword_matches: list[str] | None = None
+    keyword_gaps: list[str] | None = None
+    section_suggestions: list[str] | None = None
+    weaknesses: list[str] | None = None
+    suggested_bullets: list[str] | None = None
     recommendation: str | None = None
     error: str | None = None
     created_at: datetime

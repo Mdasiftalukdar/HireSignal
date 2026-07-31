@@ -31,8 +31,31 @@ class MatchReport(BaseModel):
         default_factory=list,
         description="Skills the job wants that the resume does not show",
     )
+    keyword_matches: list[str] = Field(
+        default_factory=list,
+        description="Important keywords/terms from the job description present in the resume",
+    )
+    keyword_gaps: list[str] = Field(
+        default_factory=list,
+        description="Important keywords/terms from the job description missing from the resume",
+    )
+    section_suggestions: list[str] = Field(
+        default_factory=list,
+        description="Concrete section-by-section improvements, e.g. 'Summary: ...', 'Experience: ...'",
+    )
+    weaknesses: list[str] = Field(
+        default_factory=list,
+        description="Where the resume is weak or thin for THIS specific role",
+    )
+    suggested_bullets: list[str] = Field(
+        default_factory=list,
+        description=(
+            "3-5 ready-to-paste resume bullet points weaving in the target/missing skills, "
+            "phrased for once the candidate has gained them"
+        ),
+    )
     recommendation: str = Field(
-        description="2-3 sentence recommendation to the candidate"
+        description="2-3 sentence overall recommendation to the candidate"
     )
 
 
@@ -49,8 +72,11 @@ _MATCH_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "You are a technical recruiter. Assess how well a candidate fits a role using "
-            "ONLY the provided resume excerpts. Do not invent experience that is not shown.",
+            "You are an expert technical recruiter and resume coach. Assess how well a candidate "
+            "fits a role using ONLY the provided resume excerpts - never invent experience. Give "
+            "specific, actionable feedback: matched vs missing skills, job-description keyword "
+            "coverage, section-by-section improvements, weaknesses for THIS role, and 3-5 concrete "
+            "resume bullet points the candidate could add once they gain the missing skills.",
         ),
         (
             "human",

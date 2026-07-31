@@ -38,6 +38,11 @@ async def process_analysis(analysis_id: int) -> None:
             analysis.matched_skills = report.matched_skills
             analysis.missing_skills = report.missing_skills
             analysis.recommendation = report.recommendation
+            analysis.keyword_matches = report.keyword_matches
+            analysis.keyword_gaps = report.keyword_gaps
+            analysis.section_suggestions = report.section_suggestions
+            analysis.weaknesses = report.weaknesses
+            analysis.suggested_bullets = report.suggested_bullets
             analysis.status = AnalysisStatus.completed
             analysis.error = None
         except Exception as exc:  # noqa: BLE001 - record failure, keep the worker alive

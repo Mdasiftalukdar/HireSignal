@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     # LLM (Phase 4) - provider-agnostic with automatic fallback
     llm_provider: str = "openrouter"
     llm_fallback_providers: str = "google,deepseek"  # tried in order on failure
+
+    # R4: which analyses run through the LangGraph agent (costs several LLM calls)
+    # vs the single LangChain call. "byok" = agent only for bring-your-own-key users
+    # (they pay), free tier stays cheap; "always" = agent for everyone (best demo);
+    # "never" = single call for everyone.
+    analyze_agent_mode: str = "byok"
     openrouter_api_key: str | None = None
     openrouter_model: str = "openai/gpt-4o-mini"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"

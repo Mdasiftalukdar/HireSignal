@@ -16,7 +16,18 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { SavedResume, Usage } from "@/lib/types";
 
-const PROVIDERS = ["openrouter", "openai", "anthropic", "google", "deepseek"];
+const PROVIDERS: { value: string; label: string }[] = [
+  { value: "openrouter", label: "OpenRouter" },
+  { value: "openai", label: "OpenAI" },
+  { value: "anthropic", label: "Anthropic (Claude)" },
+  { value: "google", label: "Google (Gemini)" },
+  { value: "deepseek", label: "DeepSeek" },
+  { value: "groq", label: "Groq" },
+  { value: "mistral", label: "Mistral" },
+  { value: "together", label: "Together AI" },
+  { value: "xai", label: "xAI (Grok)" },
+  { value: "perplexity", label: "Perplexity" },
+];
 const MAX_SAVED = 3;
 
 export default function SettingsPage() {
@@ -25,7 +36,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-[var(--color-foreground)]">Settings</h1>
         <p className="mt-1 text-[var(--color-muted)]">
-          Bring your own LLM key for unlimited checks, and manage saved résumés.
+          Bring your own LLM key for unlimited checks, and manage saved resumes.
         </p>
       </div>
       <ApiKeyCard />
@@ -119,8 +130,8 @@ function ApiKeyCard() {
                 onChange={(e) => setProvider(e.target.value)}
               >
                 {PROVIDERS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
+                  <option key={p.value} value={p.value}>
+                    {p.label}
                   </option>
                 ))}
               </Select>
@@ -155,7 +166,7 @@ function ApiKeyCard() {
   );
 }
 
-/* ---------------- Saved résumés (≤3, labeled) ---------------- */
+/* ---------------- Saved resumes (≤3, labeled) ---------------- */
 
 function SavedResumesCard() {
   const [resumes, setResumes] = useState<SavedResume[] | null>(null);
@@ -181,7 +192,7 @@ function SavedResumesCard() {
       return;
     }
     if (mode === "text" && !text.trim()) {
-      setError("Paste your résumé text, or switch to file.");
+      setError("Paste your resume text, or switch to file.");
       return;
     }
     setBusy(true);
@@ -196,7 +207,7 @@ function SavedResumesCard() {
       setText("");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save résumé");
+      setError(err instanceof Error ? err.message : "Failed to save resume");
     } finally {
       setBusy(false);
     }
@@ -213,13 +224,13 @@ function SavedResumesCard() {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Saved résumés</h2>
+        <h2 className="text-lg font-semibold">Saved resumes</h2>
         <Badge tone={atCap ? "warning" : "neutral"}>
           {count} / {MAX_SAVED}
         </Badge>
       </div>
       <p className="mt-1 text-sm text-[var(--color-muted)]">
-        Keep up to {MAX_SAVED} labeled résumés to reuse in the Analyze flow.
+        Keep up to {MAX_SAVED} labeled resumes to reuse in the Analyze flow.
       </p>
 
       {resumes === null ? (
@@ -229,7 +240,7 @@ function SavedResumesCard() {
       ) : (
         <ul className="mt-4 divide-y divide-[var(--color-border)]">
           {resumes.length === 0 && (
-            <li className="py-4 text-sm text-[var(--color-subtle)]">No saved résumés yet.</li>
+            <li className="py-4 text-sm text-[var(--color-subtle)]">No saved resumes yet.</li>
           )}
           {resumes.map((r) => (
             <li key={r.id} className="flex items-center justify-between gap-4 py-3">
@@ -247,7 +258,7 @@ function SavedResumesCard() {
 
       {!atCap && (
         <form onSubmit={add} className="mt-5 space-y-4 border-t border-[var(--color-border)] pt-5">
-          <h3 className="text-sm font-semibold">Add a résumé</h3>
+          <h3 className="text-sm font-semibold">Add a resume</h3>
           {error && <Alert>{error}</Alert>}
           <div>
             <Label htmlFor="label">Label</Label>
@@ -257,7 +268,7 @@ function SavedResumesCard() {
               maxLength={100}
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Backend Engineer — 2026"
+              placeholder="e.g. Backend Engineer - 2026"
             />
           </div>
           <div className="flex gap-2">
@@ -270,7 +281,7 @@ function SavedResumesCard() {
           </div>
           {mode === "file" ? (
             <div>
-              <Label htmlFor="file">Résumé file (PDF, DOCX, TXT)</Label>
+              <Label htmlFor="file">Resume file (PDF, DOCX, TXT)</Label>
               <input
                 id="file"
                 type="file"
@@ -281,18 +292,18 @@ function SavedResumesCard() {
             </div>
           ) : (
             <div>
-              <Label htmlFor="text">Résumé text</Label>
+              <Label htmlFor="text">Resume text</Label>
               <Textarea
                 id="text"
                 rows={6}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Paste your résumé here…"
+                placeholder="Paste your resume here…"
               />
             </div>
           )}
           <Button type="submit" loading={busy}>
-            Save résumé
+            Save resume
           </Button>
         </form>
       )}

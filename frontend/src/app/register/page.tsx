@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
+import { ConsentNote } from "@/components/ConsentNote";
 import { GoogleButton } from "@/components/GoogleButton";
 import { Alert, Button, Input, Label } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -182,6 +183,7 @@ export default function RegisterPage() {
         <Button type="submit" className="w-full" loading={busy}>
           Create account
         </Button>
+        <ConsentNote action="creating an account" />
       </form>
     </AuthShell>
   );

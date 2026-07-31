@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { Alert, Button, Card, Label, Select, Spinner, Textarea } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, streamSSE } from "@/lib/api";
 import type { Analysis, AnalysisSubmit, SavedResume } from "@/lib/types";
 
 type ResumeMode = "saved" | "upload" | "paste";
@@ -25,7 +25,7 @@ export default function AnalyzePage() {
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     api<SavedResume[]>("/me/resumes")
@@ -36,12 +36,12 @@ export default function AnalyzePage() {
       })
       .catch(() => {});
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      abortRef.current?.abort();
     };
   }, []);
 
   function reset() {
-    if (pollRef.current) clearInterval(pollRef.current);
+    abortRef.current?.abort();
     setPhase("form");
     setResult(null);
     setError(null);
@@ -77,7 +77,7 @@ export default function AnalyzePage() {
         method: "POST",
         body: { formData: fd },
       });
-      poll(submitRes.analysis_id);
+      startStream(submitRes.analysis_id);
     } catch (err) {
       setPhase("form");
       if (err instanceof ApiError && err.status === 429) {
@@ -88,28 +88,31 @@ export default function AnalyzePage() {
     }
   }
 
-  function poll(id: number) {
-    const started = Date.now();
-    pollRef.current = setInterval(async () => {
-      try {
-        const a = await api<Analysis>(`/ai/analyze/${id}`);
-        if (a.status === "completed") {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setResult(a);
-          setPhase("done");
-        } else if (a.status === "failed") {
-          if (pollRef.current) clearInterval(pollRef.current);
+  // Subscribe to the server's SSE stream; the server pushes each status change.
+  function startStream(id: number) {
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    streamSSE<Analysis>(
+      `/ai/analyze/${id}/stream`,
+      {
+        onMessage: (a) => {
+          if (a.status === "completed") {
+            setResult(a);
+            setPhase("done");
+            ctrl.abort();
+          } else if (a.status === "failed") {
+            setPhase("form");
+            setError(a.error || "Analysis failed. Please try again.");
+            ctrl.abort();
+          }
+        },
+        onError: (detail) => {
           setPhase("form");
-          setError(a.error || "Analysis failed. Please try again.");
-        } else if (Date.now() - started > 90_000) {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setPhase("form");
-          setError("Analysis is taking unusually long. Please try again.");
-        }
-      } catch {
-        /* transient — keep polling until timeout */
-      }
-    }, 2000);
+          setError(detail || "Lost connection to the analysis stream.");
+        },
+      },
+      ctrl.signal,
+    );
   }
 
   if (phase === "processing") {

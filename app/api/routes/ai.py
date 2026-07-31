@@ -7,18 +7,21 @@
 Text-in endpoints take form fields so multi-line job descriptions paste cleanly.
 """
 
+import asyncio
+import json
 from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.config import settings
-from app.db.session import get_db
+from app.db.session import AsyncSessionLocal, get_db
 from app.models.analysis import Analysis, AnalysisStatus
 from app.models.resume import Resume
 from app.models.user import User
@@ -218,3 +221,57 @@ async def get_analysis(
     if analysis is None or (analysis.user_id is not None and analysis.user_id != user.id):
         raise HTTPException(status_code=404, detail="Analysis not found")
     return analysis
+
+
+@router.get("/analyze/{analysis_id}/stream")
+async def stream_analysis(
+    analysis_id: int, user: User = Depends(get_current_user)
+):
+    """Server-Sent Events stream of an analysis until it completes or fails.
+
+    Moves the poll loop to the server: the client opens ONE streaming connection
+    and we push a status event whenever the row changes (the Kafka consumer writes
+    the result), plus periodic heartbeats. Each poll uses its own short-lived
+    session because the generator runs after the request handler returns.
+    """
+
+    async def event_gen():
+        loop = asyncio.get_event_loop()
+        deadline = loop.time() + 120  # give up after 2 minutes
+        last_serialized: str | None = None
+
+        while True:
+            async with AsyncSessionLocal() as db:
+                analysis = await db.get(Analysis, analysis_id)
+                if analysis is None or (
+                    analysis.user_id is not None and analysis.user_id != user.id
+                ):
+                    yield f"event: error\ndata: {json.dumps({'detail': 'Analysis not found'})}\n\n"
+                    return
+                payload = AnalysisRead.model_validate(analysis).model_dump(mode="json")
+                terminal = analysis.status in (AnalysisStatus.completed, AnalysisStatus.failed)
+
+            serialized = json.dumps(payload, default=str)
+            # Only emit when something changed (avoids spamming identical frames).
+            if serialized != last_serialized:
+                yield f"data: {serialized}\n\n"
+                last_serialized = serialized
+
+            if terminal:
+                return
+            if loop.time() > deadline:
+                yield f"event: timeout\ndata: {json.dumps({'detail': 'Timed out'})}\n\n"
+                return
+
+            yield ": keep-alive\n\n"  # comment frame keeps the connection warm
+            await asyncio.sleep(1.5)
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # don't let a proxy buffer the stream
+        },
+    )

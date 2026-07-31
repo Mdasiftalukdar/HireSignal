@@ -9,7 +9,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { api, clearToken, getToken, setToken } from "@/lib/api";
+import { api, ApiError, clearToken, getToken, setToken } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 interface AuthState {
@@ -32,15 +32,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    try {
-      const me = await api<User>("/auth/me");
-      setUser(me);
-    } catch {
-      clearToken(); // stale/invalid token
-      setUser(null);
-    } finally {
-      setLoading(false);
+    // Only a real 401/403 means the token is bad — clear it then. A transient
+    // network error must NOT log the user out, so we retry a few times and, if
+    // still failing, keep the token so a later attempt can recover.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const me = await api<User>("/auth/me");
+        setUser(me);
+        setLoading(false);
+        return;
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          clearToken();
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 400)); // transient — back off & retry
+      }
     }
+    setUser(null);
+    setLoading(false);
   }, []);
 
   useEffect(() => {

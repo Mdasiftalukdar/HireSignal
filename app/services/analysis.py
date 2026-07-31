@@ -5,6 +5,7 @@ bring-your-own LLM key, it is decrypted and used for their request; otherwise th
 provider chain is used. Failures are recorded on the row, never crashing the worker.
 """
 
+import logging
 import time
 
 from fastapi.concurrency import run_in_threadpool
@@ -15,7 +16,10 @@ from app.db.session import AsyncSessionLocal
 from app.models.analysis import Analysis, AnalysisStatus
 from app.models.resume import Resume
 from app.models.user import User
-from app.services.rag import index_resume, match_resume_to_job
+from app.services.agent import analyze_resume_agent
+from app.services.rag import index_resume
+
+log = logging.getLogger("hiresignal.analysis")
 
 
 async def process_analysis(analysis_id: int) -> None:
@@ -40,9 +44,13 @@ async def process_analysis(analysis_id: int) -> None:
                     provider = user.api_provider
 
             await run_in_threadpool(index_resume, resume.id, resume.content_text or "")
-            report = await match_resume_to_job(
+            # R4: run the async /analyze through the LangGraph agent (retrieve -> grade ->
+            # generate -> self-critique -> finalize). The synchronous /ai/match endpoint
+            # still uses the plain LangChain chain in rag.py.
+            report, steps = await analyze_resume_agent(
                 resume.id, analysis.job_description, api_key=api_key, provider=provider
             )
+            log.info("analysis %s agent path: %s", analysis_id, " -> ".join(steps))
 
             analysis.match_score = report.match_score
             analysis.matched_skills = report.matched_skills

@@ -162,6 +162,22 @@ services:
     networks:
       - hiresignal
 
+  # R3 frontend (Next.js). Serves the production build; the browser calls the API
+  # on the host at :8000. For live-reload development, run `npm run dev` locally
+  # instead (this service is the "docker compose up = whole stack" showcase).
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000/api/v1}
+    container_name: hiresignal_frontend
+    ports:
+      - "3001:3001"   # http://localhost:3001
+    depends_on:
+      - api
+    networks:
+      - hiresignal
+
 volumes:
   pgdata:
   redisdata:

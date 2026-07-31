@@ -4,7 +4,13 @@
   consistent through a single set of Tailwind class recipes.
 */
 import { clsx } from "@/lib/clsx";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 
 export function Button({
   variant = "primary",
@@ -50,6 +56,39 @@ export function Input({
       )}
       {...props}
     />
+  );
+}
+
+export function Textarea({
+  className,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={clsx(
+        "w-full rounded-lg border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-subtle)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-soft)]",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Select({
+  className,
+  children,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      className={clsx(
+        "w-full rounded-lg border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-foreground)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-soft)]",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </select>
   );
 }
 

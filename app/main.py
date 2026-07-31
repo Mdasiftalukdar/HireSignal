@@ -9,6 +9,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
@@ -37,6 +38,16 @@ app = FastAPI(
     version="0.1.0",
     description="AI-powered job application tracker & resume analyzer.",
     lifespan=lifespan,
+)
+
+# CORS: let the R3 browser frontend (a different origin) call this API. We echo an
+# explicit origin allow-list rather than "*" so credentialed requests are permitted.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Signed session cookie - required by Authlib's OAuth state/nonce handling.

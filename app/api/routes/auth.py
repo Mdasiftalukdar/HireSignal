@@ -1,6 +1,7 @@
 """Authentication: email/password (with OTP verification) and Google OAuth."""
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -112,7 +113,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, settings.google_redirect_uri)
 
 
-@router.get("/google/callback", response_model=Token)
+@router.get("/google/callback")
 async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
@@ -142,5 +143,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
         user.email_verified = True  # Google verified the address
         await db.commit()
 
-    # No frontend yet -> return the JWT as JSON. (R3 will redirect to the SPA with it.)
-    return Token(access_token=create_access_token(subject=str(user.id)))
+    # Hand the JWT to the SPA: redirect to the frontend callback route with the token
+    # in the URL fragment (#), so it never hits server logs or the Referer header.
+    jwt = create_access_token(subject=str(user.id))
+    return RedirectResponse(url=f"{settings.frontend_url}/auth/callback#token={jwt}")

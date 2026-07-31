@@ -1,7 +1,7 @@
 /*
-  A structured résumé document. Editing a typed model (rather than raw
+  A structured resume document. Editing a typed model (rather than raw
   contentEditable HTML) lets us render a faithful live A4 preview AND emit clean
-  vector PDF + native DOCX from the exact same data — with real, selectable,
+  vector PDF + native DOCX from the exact same data - with real, selectable,
   ATS-friendly text.
 */
 
@@ -56,7 +56,7 @@ export function defaultResume(name = "", email = ""): ResumeDoc {
     location: "",
     website: "",
     summary:
-      "Results-driven engineer with experience building reliable, well-tested services. Add a 2–3 line summary tailored to the role you're targeting.",
+      "Results-driven engineer with experience building reliable, well-tested services. Add a 2-3 line summary tailored to the role you're targeting.",
     sections: [
       {
         id: uid(),
@@ -66,7 +66,7 @@ export function defaultResume(name = "", email = ""): ResumeDoc {
             id: uid(),
             title: "Software Engineer",
             subtitle: "Company",
-            meta: "2023 – Present · City",
+            meta: "2023 - Present · City",
             bullets: [
               "Describe an achievement with a metric (e.g. cut latency 40%).",
               "Highlight a technology from the target job description.",

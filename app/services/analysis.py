@@ -1,4 +1,4 @@
-"""Background analysis pipeline: index the résumé, run the RAG match, persist the result.
+"""Background analysis pipeline: index the resume, run the RAG match, persist the result.
 
 Runs in the Kafka consumer (its own process/session). If the analysis's owner set a
 bring-your-own LLM key, it is decrypted and used for their request; otherwise the server's

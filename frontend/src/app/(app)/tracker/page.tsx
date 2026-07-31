@@ -64,7 +64,7 @@ export default function TrackerPage() {
                   <Th>Date</Th>
                   <Th>Score</Th>
                   <Th>Role</Th>
-                  <Th>Résumé</Th>
+                  <Th>Resume</Th>
                   <Th>Applied</Th>
                   <Th>Outcome</Th>
                 </tr>
@@ -90,7 +90,7 @@ export default function TrackerPage() {
                     </Td>
                     <Td>
                       <p className="max-w-[280px] text-[var(--color-foreground)]">
-                        {it.job_summary || <span className="text-[var(--color-subtle)]">—</span>}
+                        {it.job_summary || <span className="text-[var(--color-subtle)]">-</span>}
                       </p>
                     </Td>
                     <Td>

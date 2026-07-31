@@ -74,7 +74,7 @@ _GRADE_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "You grade whether retrieved résumé excerpts are sufficient to assess a candidate's "
+            "You grade whether retrieved resume excerpts are sufficient to assess a candidate's "
             "fit for a job. If they clearly lack the information needed (too sparse, off-topic), "
             "mark them insufficient and propose a better retrieval query built from the job's key "
             "skills and terminology.",
@@ -93,7 +93,7 @@ _GENERATE_PROMPT = ChatPromptTemplate.from_messages(
             "standard section names, and strong action verbs with quantified impact in bullets. "
             "Provide matched vs missing skills, keyword coverage, section-by-section improvements, "
             "weaknesses for THIS role, 3-5 concrete resume bullets the candidate could add once they "
-            "gain the missing skills, and a 1-2 sentence summary of both the résumé and the job.\n"
+            "gain the missing skills, and a 1-2 sentence summary of both the resume and the job.\n"
             "REVISION NOTES from a reviewer (address them if present): {revision_notes}",
         ),
         (
@@ -108,7 +108,7 @@ _CRITIQUE_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "You are a strict reviewer of résumé match reports. Reject the report if it: claims "
+            "You are a strict reviewer of resume match reports. Reject the report if it: claims "
             "skills NOT supported by the excerpts (hallucination); ignores obvious keywords from the "
             "job; gives vague, non-quantified bullets; or leaves required fields thin. Otherwise "
             "accept it. Be concise about any issues to fix.",

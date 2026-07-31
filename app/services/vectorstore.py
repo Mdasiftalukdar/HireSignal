@@ -52,5 +52,5 @@ def query_resume(
 
 
 def delete_resume(resume_id: int) -> None:
-    """Remove all of a résumé's chunks from the vector store."""
+    """Remove all of a resume's chunks from the vector store."""
     _collection().delete(where={"resume_id": resume_id})

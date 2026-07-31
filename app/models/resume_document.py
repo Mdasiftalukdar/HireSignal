@@ -8,7 +8,7 @@ from app.db.base import Base, TimestampMixin
 
 
 class ResumeDocument(Base, TimestampMixin):
-    """The structured résumé the user edits in the R3 editor.
+    """The structured resume the user edits in the R3 editor.
 
     One document per user (server-side persistence for the WYSIWYG editor, so it
     syncs across devices instead of living only in the browser's localStorage).

@@ -3,9 +3,9 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "HireSignal — AI résumé & job-fit analyzer",
+  title: "HireSignal - AI resume & job-fit analyzer",
   description:
-    "Analyze how well your résumé matches a job, track applications, and improve with AI feedback.",
+    "Analyze how well your resume matches a job, track applications, and improve with AI feedback.",
 };
 
 export default function RootLayout({

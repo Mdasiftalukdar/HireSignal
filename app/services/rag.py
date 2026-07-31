@@ -55,7 +55,7 @@ class MatchReport(BaseModel):
         ),
     )
     resume_summary: str = Field(
-        default="", description="1-2 sentence summary of the candidate's résumé"
+        default="", description="1-2 sentence summary of the candidate's resume"
     )
     job_summary: str = Field(
         default="", description="1-2 sentence summary of the job (role + key requirements)"
@@ -84,7 +84,7 @@ _MATCH_PROMPT = ChatPromptTemplate.from_messages(
             "standard section names, and strong action verbs with quantified impact in bullets. "
             "Provide matched vs missing skills, keyword coverage, section-by-section improvements, "
             "weaknesses for THIS role, 3-5 concrete resume bullets the candidate could add once they "
-            "gain the missing skills, and a 1-2 sentence summary of both the résumé and the job.",
+            "gain the missing skills, and a 1-2 sentence summary of both the resume and the job.",
         ),
         (
             "human",

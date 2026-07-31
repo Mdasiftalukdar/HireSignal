@@ -2,7 +2,7 @@
 
 - /parse-job            synchronous structured extraction
 - /resumes/index, /match  synchronous RAG
-- /analyze, /analyze/{id}  async: résumé (saved | upload | paste) + JD -> Kafka -> consumer
+- /analyze, /analyze/{id}  async: resume (saved | upload | paste) + JD -> Kafka -> consumer
 
 Text-in endpoints take form fields so multi-line job descriptions paste cleanly.
 """
@@ -155,11 +155,11 @@ async def analyze(
                 ),
             )
 
-    # 2) Resolve the résumé: a saved one, an on-the-fly upload, or pasted text.
+    # 2) Resolve the resume: a saved one, an on-the-fly upload, or pasted text.
     if saved_resume_id is not None:
         resume = await db.get(Resume, saved_resume_id)
         if resume is None or resume.user_id != user.id:
-            raise HTTPException(status_code=404, detail="Saved résumé not found")
+            raise HTTPException(status_code=404, detail="Saved resume not found")
     elif resume_file is not None and resume_file.filename:
         text = await _read_upload(resume_file)
         resume = Resume(user_id=user.id, filename=resume_file.filename, content_text=text)
@@ -174,7 +174,7 @@ async def analyze(
     else:
         raise HTTPException(
             status_code=400,
-            detail="Provide a résumé (saved_resume_id, resume_file, or resume_text).",
+            detail="Provide a resume (saved_resume_id, resume_file, or resume_text).",
         )
 
     # 3) Resolve the job description: an upload or pasted text.

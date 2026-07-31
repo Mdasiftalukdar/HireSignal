@@ -11,15 +11,15 @@ class Resume(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     # Owner (null for legacy/seed rows). A user keeps at most `max_saved_resumes`
-    # SAVED résumés - those are the ones with a `label` and a stored file.
+    # SAVED resumes - those are the ones with a `label` and a stored file.
     user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    label: Mapped[str | None] = mapped_column(String(100))  # set => a saved résumé
+    label: Mapped[str | None] = mapped_column(String(100))  # set => a saved resume
     filename: Mapped[str] = mapped_column(String(255))
     # Extracted plain text (cheap to keep; the RAG pipeline embeds it).
     content_text: Mapped[str | None] = mapped_column(Text)
-    # Object-storage key - only saved résumés get a stored file (bounds storage cost).
+    # Object-storage key - only saved resumes get a stored file (bounds storage cost).
     s3_key: Mapped[str | None] = mapped_column(String(1024))
 
     applications: Mapped[list[Application]] = relationship(

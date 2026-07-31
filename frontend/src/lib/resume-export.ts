@@ -1,7 +1,7 @@
 /*
   Export a ResumeDoc to PDF (jsPDF, vector/selectable text) and DOCX (docx).
   Both are generated fully client-side from the structured model, so the output
-  is real text — copy-pasteable and ATS-parseable, not a rasterized screenshot.
+  is real text - copy-pasteable and ATS-parseable, not a rasterized screenshot.
 */
 
 import { jsPDF } from "jspdf";

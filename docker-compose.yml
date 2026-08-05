@@ -166,6 +166,11 @@ services:
   # on the host at :8000. For live-reload development, run `npm run dev` locally
   # instead (this service is the "docker compose up = whole stack" showcase).
   frontend:
+    # Opt-in only: `docker compose --profile prod up -d frontend` runs the built
+    # production frontend. The default `docker compose up` skips it so it doesn't
+    # occupy port 3001, which the local `npm run dev` server uses during development.
+    # Rebuild after code changes: `docker compose --profile prod build frontend`.
+    profiles: ["prod"]
     build:
       context: ./frontend
       args:

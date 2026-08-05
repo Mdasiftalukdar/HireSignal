@@ -30,6 +30,7 @@ from app.services.events import publish_analysis
 from app.services.extract import SUPPORTED, extract_text
 from app.services.job_parser import ParsedJob, parse_job_description
 from app.services.rag import MatchReport, index_resume, match_resume_to_job
+from app.services.resume_structurer import structure_resume
 from app.services.storage import upload_bytes
 
 router = APIRouter(prefix="/ai", tags=["ai"], dependencies=[Depends(get_current_user)])
@@ -117,6 +118,68 @@ async def match_endpoint(
         return await match_resume_to_job(resume_id, job_description)
     except Exception as exc:  # noqa: BLE001
         raise _llm_http_error(exc) from exc
+
+
+# ---------- Resume import: raw text -> structured editor document ----------
+
+
+@router.post("/resume-structure")
+async def resume_structure(
+    saved_resume_id: int | None = Form(None),
+    resume_file: UploadFile | None = File(None),
+    resume_text: str | None = Form(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Parse a saved, uploaded, or pasted resume into structured JSON for the editor.
+
+    Returns the frontend ResumeDoc shape (camelCase, no ids); the client fills in
+    ids/defaults. The LLM only reorganizes the real text - it never invents content.
+    """
+    if saved_resume_id is not None:
+        resume = await db.get(Resume, saved_resume_id)
+        if resume is None or resume.user_id != user.id:
+            raise HTTPException(status_code=404, detail="Saved resume not found")
+        text = resume.content_text or ""
+    elif resume_file is not None and resume_file.filename:
+        text = await _read_upload(resume_file)
+    elif resume_text:
+        text = resume_text.strip()
+    else:
+        raise HTTPException(status_code=400, detail="Provide a resume to import.")
+
+    if len(text) < 30:
+        raise HTTPException(status_code=400, detail="That resume has too little text to import.")
+
+    try:
+        s = await structure_resume(text)
+    except Exception as exc:  # noqa: BLE001
+        raise _llm_http_error(exc) from exc
+
+    return {
+        "fullName": s.full_name,
+        "headline": s.headline,
+        "email": s.email,
+        "phone": s.phone,
+        "location": s.location,
+        "website": s.website,
+        "summary": s.summary,
+        "sections": [
+            {
+                "heading": sec.heading,
+                "entries": [
+                    {
+                        "title": e.title,
+                        "subtitle": e.subtitle,
+                        "meta": e.meta,
+                        "bullets": e.bullets,
+                    }
+                    for e in sec.entries
+                ],
+            }
+            for sec in s.sections
+        ],
+    }
 
 
 # ---------- Round 1: async analyze (saved | upload | paste; daily limit; Kafka) ----------

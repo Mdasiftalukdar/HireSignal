@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Card, Spinner } from "@/components/ui";
+import { Alert, Button, Card, Select, Spinner, Textarea } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { exportDocx, exportPdf } from "@/lib/resume-export";
 import {
   contactLine,
   defaultResume,
+  importResume,
   loadResume,
   loadServerResume,
   newEntry,
@@ -19,9 +20,9 @@ import {
   type ResumeEntry,
   type ResumeSection,
 } from "@/lib/resume-doc";
+import type { Analysis, SavedResume, TrackerItem } from "@/lib/types";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
-import type { Analysis, TrackerItem } from "@/lib/types";
 
 export default function EditorPage() {
   const { user } = useAuth();
@@ -125,6 +126,8 @@ export default function EditorPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* -------- Editor -------- */}
         <div className="space-y-5">
+          <ImportResume onImport={(d) => setDoc(d)} />
+
           <AiSuggestions
             onAdd={(bullet, sid) =>
               mapSections((s) => {
@@ -355,18 +358,163 @@ function A4Preview({ doc }: { doc: ResumeDoc }) {
   );
 }
 
-/* ---------------- AI bullet suggestions ---------------- */
+/* ---------------- Import an existing resume ---------------- */
+
+function ImportResume({ onImport }: { onImport: (d: ResumeDoc) => void }) {
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"saved" | "upload" | "paste">("saved");
+  const [saved, setSaved] = useState<SavedResume[]>([]);
+  const [savedId, setSavedId] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    api<SavedResume[]>("/me/resumes")
+      .then((rows) => {
+        setSaved(rows);
+        if (rows.length) setSavedId(String(rows[0].id));
+        else setMode("upload");
+      })
+      .catch(() => {});
+  }, [open]);
+
+  async function run() {
+    setError(null);
+    const fd = new FormData();
+    if (mode === "saved") {
+      if (!savedId) return setError("Pick a saved resume, or upload/paste one.");
+      fd.append("saved_resume_id", savedId);
+    } else if (mode === "upload") {
+      if (!file) return setError("Choose a resume file (PDF, DOCX, or TXT).");
+      fd.append("resume_file", file);
+    } else {
+      if (text.trim().length < 30) return setError("Paste a bit more resume text.");
+      fd.append("resume_text", text);
+    }
+    if (!confirm("Importing will replace the current editor content. Continue?")) return;
+    setBusy(true);
+    try {
+      const doc = await importResume(fd);
+      onImport(doc);
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold">Import a resume</h2>
+          <p className="text-xs text-[var(--color-muted)]">
+            Start from an existing resume - AI structures it into editable sections.
+          </p>
+        </div>
+        <Button variant="ghost" onClick={() => setOpen((o) => !o)}>
+          {open ? "Hide" : "Import"}
+        </Button>
+      </div>
+
+      {open && (
+        <div className="mt-4 space-y-3">
+          {error && <Alert>{error}</Alert>}
+          <div className="flex flex-wrap gap-2">
+            <ModeChip active={mode === "saved"} onClick={() => setMode("saved")} disabled={saved.length === 0}>
+              Saved
+            </ModeChip>
+            <ModeChip active={mode === "upload"} onClick={() => setMode("upload")}>
+              Upload
+            </ModeChip>
+            <ModeChip active={mode === "paste"} onClick={() => setMode("paste")}>
+              Paste
+            </ModeChip>
+          </div>
+
+          {mode === "saved" &&
+            (saved.length ? (
+              <Select value={savedId} onChange={(e) => setSavedId(e.target.value)}>
+                {saved.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label} ({r.filename})
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <p className="text-sm text-[var(--color-muted)]">No saved resumes yet.</p>
+            ))}
+          {mode === "upload" && (
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt,.md"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-sm text-[var(--color-muted)] file:mr-4 file:rounded-lg file:border-0 file:bg-[var(--color-primary-soft)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[var(--color-primary-hover)]"
+            />
+          )}
+          {mode === "paste" && (
+            <Textarea
+              rows={6}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Paste your resume text…"
+            />
+          )}
+
+          <Button onClick={run} loading={busy}>
+            {busy ? "Structuring…" : "Import & build"}
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ModeChip({
+  active,
+  onClick,
+  disabled,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={
+        active
+          ? "rounded-lg bg-[var(--color-primary-soft)] px-3 py-1.5 text-sm font-semibold text-[var(--color-primary-hover)]"
+          : "rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-muted)] hover:bg-slate-100 disabled:opacity-40"
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ---------------- AI suggestions (bullets + missing skills) ---------------- */
 
 function AiSuggestions({
   sections,
   onAdd,
 }: {
   sections: ResumeSection[];
-  onAdd: (bullet: string, sectionId: string) => void;
+  onAdd: (text: string, sectionId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [bullets, setBullets] = useState<string[] | null>(null);
+  const [skills, setSkills] = useState<string[]>([]);
   const [target, setTarget] = useState("");
+  const [ack, setAck] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -382,35 +530,50 @@ function AiSuggestions({
       const done = list.find((a) => a.status === "completed");
       if (!done) {
         setBullets([]);
-        setMsg("Run an analysis first to get tailored bullet suggestions.");
+        setMsg("Run an analysis first to get tailored suggestions.");
         return;
       }
       const full = await api<Analysis>(`/ai/analyze/${done.id}`);
       setBullets(full.suggested_bullets ?? []);
-      if (!full.suggested_bullets?.length) setMsg("That analysis had no bullet suggestions.");
+      setSkills(full.missing_skills ?? []);
+      if (!full.suggested_bullets?.length && !full.missing_skills?.length)
+        setMsg("That analysis had no suggestions.");
     } catch {
       setMsg("Couldn't load suggestions.");
       setBullets([]);
     }
   }
 
+  const canAdd = ack && sections.length > 0;
+
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">AI bullet suggestions</h2>
+        <h2 className="text-sm font-semibold">AI suggestions from your last analysis</h2>
         <Button variant="ghost" onClick={open ? () => setOpen(false) : load}>
-          {open ? "Hide" : "Pull from last analysis"}
+          {open ? "Hide" : "Pull suggestions"}
         </Button>
       </div>
+
       {open && (
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 space-y-4">
           {bullets === null ? (
             <Spinner className="size-5 text-[var(--color-primary)]" />
           ) : (
             <>
               {msg && <p className="text-sm text-[var(--color-muted)]">{msg}</p>}
-              {bullets.length > 0 && (
+
+              {(bullets.length > 0 || skills.length > 0) && (
                 <>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Only add skills or experience you genuinely have. You are responsible for actually
+                    acquiring the mentioned knowledge and experience before putting it on your resume.
+                    <label className="mt-2 flex items-center gap-2 font-medium">
+                      <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />
+                      I understand, and confirm these are (or will be) truthful.
+                    </label>
+                  </div>
+
                   <label className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
                     Add to section:
                     <select
@@ -425,6 +588,31 @@ function AiSuggestions({
                       ))}
                     </select>
                   </label>
+                </>
+              )}
+
+              {skills.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-[var(--color-subtle)]">Missing skills</p>
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map((s, i) => (
+                      <button
+                        key={i}
+                        disabled={!canAdd}
+                        onClick={() => onAdd(s, target)}
+                        title={canAdd ? "Add as a bullet" : "Confirm the note above first"}
+                        className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-200 disabled:opacity-40"
+                      >
+                        + {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {bullets.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-[var(--color-subtle)]">Suggested bullets</p>
                   <ul className="space-y-2">
                     {bullets.map((b, i) => (
                       <li
@@ -433,15 +621,16 @@ function AiSuggestions({
                       >
                         <span className="text-sm text-slate-700">{b}</span>
                         <button
+                          disabled={!canAdd}
                           onClick={() => onAdd(b, target)}
-                          className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)]"
+                          className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] disabled:opacity-40"
                         >
                           + Add
                         </button>
                       </li>
                     ))}
                   </ul>
-                </>
+                </div>
               )}
             </>
           )}

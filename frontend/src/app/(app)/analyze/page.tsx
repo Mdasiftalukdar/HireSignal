@@ -141,6 +141,16 @@ export default function AnalyzePage() {
             </Link>
           </div>
         </div>
+        <Card className="border-indigo-200 bg-[var(--color-primary-soft)] p-4">
+          <p className="text-sm text-[var(--color-primary-hover)]">
+            These suggestions - the missing skills and tailored bullets - can be added straight into
+            your resume in the{" "}
+            <Link href="/editor" className="font-semibold underline">
+              Resume editor
+            </Link>
+            . Open it and choose &ldquo;Pull suggestions&rdquo;.
+          </p>
+        </Card>
         <AnalysisResults a={result} />
       </div>
     );

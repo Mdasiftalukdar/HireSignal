@@ -172,3 +172,13 @@ export async function loadServerResume(): Promise<ResumeDoc | null> {
 export async function saveServerResume(doc: ResumeDoc): Promise<void> {
   await api("/me/resume-doc", { method: "PUT", body: { json: doc } });
 }
+
+// Import a saved/uploaded/pasted resume: the backend parses it into structured
+// JSON, which we normalize into a full editable ResumeDoc (ids + defaults filled).
+export async function importResume(form: FormData): Promise<ResumeDoc> {
+  const raw = await api<Partial<ResumeDoc>>("/ai/resume-structure", {
+    method: "POST",
+    body: { formData: form },
+  });
+  return normalizeResume(raw);
+}

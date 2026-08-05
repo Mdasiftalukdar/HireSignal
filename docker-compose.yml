@@ -162,22 +162,48 @@ services:
     networks:
       - hiresignal
 
-  # R3 frontend (Next.js). Serves the production build; the browser calls the API
-  # on the host at :8000. For live-reload development, run `npm run dev` locally
-  # instead (this service is the "docker compose up = whole stack" showcase).
+  # R3 frontend (Next.js) - DEV mode with live reload, started by the default
+  # `docker compose up`. The source is bind-mounted and `next dev` watches it
+  # (file polling, since this is a Windows bind mount), so your edits refresh in
+  # the browser with no rebuild - the same pattern as the api service. The browser
+  # reaches the API on the host at :8000.
   frontend:
-    # Opt-in only: `docker compose --profile prod up -d frontend` runs the built
-    # production frontend. The default `docker compose up` skips it so it doesn't
-    # occupy port 3001, which the local `npm run dev` server uses during development.
-    # Rebuild after code changes: `docker compose --profile prod build frontend`.
+    build:
+      context: ./frontend
+      target: deps            # image with node_modules; the app code comes from the mount
+    container_name: hiresignal_frontend
+    # Use the webpack dev bundler (not Turbopack): only webpack honors
+    # WATCHPACK_POLLING, and polling is what makes file-watching work across a
+    # Windows Docker bind mount (Turbopack's native watcher misses those events).
+    command: sh -c "npm run dev -- -H 0.0.0.0 --webpack"
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"     # poll for file changes across the Windows mount
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3001:3001"   # http://localhost:3001
+    volumes:
+      - ./frontend:/app       # live source
+      - /app/node_modules     # keep the image's Linux node_modules (mask the host's)
+      - /app/.next            # keep the dev build cache inside the container
+    depends_on:
+      - api
+    networks:
+      - hiresignal
+
+  # Frozen PRODUCTION build of the frontend (opt-in), on :3002 so it never clashes
+  # with the dev frontend. Rebuild after code changes:
+  #   docker compose --profile prod build frontend-prod
+  #   docker compose --profile prod up -d frontend-prod
+  frontend-prod:
     profiles: ["prod"]
     build:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000/api/v1}
-    container_name: hiresignal_frontend
+    container_name: hiresignal_frontend_prod
     ports:
-      - "3001:3001"   # http://localhost:3001
+      - "3002:3001"   # http://localhost:3002
     depends_on:
       - api
     networks:

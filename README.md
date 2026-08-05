@@ -122,13 +122,16 @@ Services:
 
 ### Frontend development
 
-The compose `frontend` service serves the production build. For hot-reload while developing:
+The compose `frontend` service runs the Next.js dev server with the source bind-mounted, so your
+edits hot-reload in the browser with no rebuild. It starts with the default `docker compose up`.
+
+To run the frozen production build instead (served on port 3002):
 
 ```bash
-docker compose stop frontend
-npm --prefix frontend install
-npm --prefix frontend run dev      # http://localhost:3001
+docker compose --profile prod up -d --build frontend-prod   # http://localhost:3002
 ```
+
+You can also run the dev server directly on the host if you prefer: `npm --prefix frontend run dev`.
 
 ## How the AI analysis works
 

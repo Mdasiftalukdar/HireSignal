@@ -1,0 +1,9 @@
+# Caddy reverse proxy for the production backend.
+# Caddy automatically obtains and renews a Let's Encrypt TLS certificate for
+# BACKEND_DOMAIN (needs ports 80 and 443 reachable), then forwards all traffic
+# to the api container on the private Docker network.
+
+{$BACKEND_DOMAIN} {
+	encode gzip
+	reverse_proxy api:8000
+}

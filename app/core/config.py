@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     smtp_host: str = "mailpit"
     smtp_port: int = 1025
     smtp_from: str = "no-reply@hiresignal.local"
+    # Real providers (Gmail/Brevo/etc.) need auth + TLS; MailPit needs neither.
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_starttls: bool = False  # True for port 587 providers; 465 uses implicit SSL
     otp_ttl_seconds: int = 600
 
     # LLM (Phase 4) - provider-agnostic with automatic fallback

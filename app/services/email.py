@@ -17,8 +17,22 @@ def _send(to: str, subject: str, body: str) -> None:
     msg["To"] = to
     msg["Subject"] = subject
     msg.set_content(body)
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as server:
+
+    # Port 465 = implicit SSL; 587 (or others) = optional STARTTLS. MailPit needs
+    # neither and no login, so all of this is skipped when unset (dev default).
+    use_ssl = settings.smtp_port == 465
+    if use_ssl:
+        server = smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=10)
+    else:
+        server = smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10)
+    try:
+        if not use_ssl and settings.smtp_starttls:
+            server.starttls()
+        if settings.smtp_user and settings.smtp_password:
+            server.login(settings.smtp_user, settings.smtp_password)
         server.send_message(msg)
+    finally:
+        server.quit()
 
 
 async def send_otp_email(to: str, code: str) -> None:

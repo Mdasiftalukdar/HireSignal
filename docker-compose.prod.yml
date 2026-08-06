@@ -1,0 +1,49 @@
+# Production overlay for the Oracle Always Free VM.
+#
+# Usage on the VM:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# It adds a Caddy reverse proxy that terminates HTTPS (automatic Let's Encrypt
+# certificate) and forwards to the api container over the private Docker network.
+# Only ports 80/443 need to be open on the VM; every other service stays internal.
+#
+# Requires two extra vars in the VM's .env:
+#   BACKEND_DOMAIN=your-name.duckdns.org
+#   (plus prod values for FRONTEND_URL, CORS_ORIGINS, GOOGLE_REDIRECT_URI, secrets)
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: hiresignal_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      BACKEND_DOMAIN: ${BACKEND_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    networks:
+      - hiresignal
+
+  # Keep services restarting across reboots in production.
+  api:
+    restart: unless-stopped
+  consumer:
+    restart: unless-stopped
+  postgres:
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped
+  kafka:
+    restart: unless-stopped
+  minio:
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

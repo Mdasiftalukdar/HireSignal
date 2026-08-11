@@ -41,6 +41,11 @@ services:
     restart: unless-stopped
   kafka:
     restart: unless-stopped
+    # Cap the JVM heap so Kafka fits comfortably on a small (4 GB) VM. This is a
+    # memory setting only - the broker, topics, partitions, and consumer group all
+    # work exactly the same. Remove this override on a larger box for more headroom.
+    environment:
+      KAFKA_HEAP_OPTS: "-Xmx512m -Xms256m"
   minio:
     restart: unless-stopped
 

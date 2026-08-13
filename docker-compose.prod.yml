@@ -49,6 +49,12 @@ services:
   minio:
     restart: unless-stopped
 
+  # The frontend is hosted on Vercel, so it must NOT run (or build) on the server.
+  # Gating it behind an inactive profile removes it from the production deploy, while
+  # local `docker compose up` (which doesn't use this overlay) still runs it for dev.
+  frontend:
+    profiles: ["local-dev-only"]
+
 volumes:
   caddy_data:
   caddy_config:

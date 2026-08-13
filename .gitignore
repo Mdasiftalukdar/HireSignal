@@ -53,8 +53,14 @@ crash.log
 .DS_Store
 Thumbs.db
 
-# ---- Claude Code (local machine state; launch.json is intentionally tracked) ----
-.claude/settings.local.json
+# ---- Local tooling / assistant config (never published) ----
+.claude/
+frontend/CLAUDE.md
+frontend/AGENTS.md
+CLAUDE.md
+AGENTS.md
+.cursor/
+.aider*
 
 # ---- Local-only notes (kept off the public repo) ----
 docs/learning-notes.md

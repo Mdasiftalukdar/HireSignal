@@ -4,6 +4,7 @@
 services:
   api:
     build: .
+    image: hiresignal-api      # tag it so the consumer can reuse this exact image
     container_name: hiresignal_api
     # Override the image's production CMD with hot-reload for local dev.
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -135,7 +136,9 @@ services:
       - hiresignal
 
   consumer:
-    build: .
+    # Reuse the api image (identical build) instead of building a second torch
+    # image - saves build time and a lot of disk on a small server.
+    image: hiresignal-api
     container_name: hiresignal_consumer
     command: python -m app.workers.consumer
     env_file: .env

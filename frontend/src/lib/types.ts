@@ -23,6 +23,10 @@ export interface SavedResume {
   filename: string;
 }
 
+export interface SavedResumeDetail extends SavedResume {
+  content_text: string | null;
+}
+
 export type AnalysisStatus = "pending" | "processing" | "completed" | "failed";
 export type Decision = "under_review" | "selected" | "not_selected";
 

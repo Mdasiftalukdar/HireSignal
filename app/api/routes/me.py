@@ -40,6 +40,10 @@ class SavedResumeOut(BaseModel):
     filename: str
 
 
+class SavedResumeDetail(SavedResumeOut):
+    content_text: str | None
+
+
 @router.get("/resumes", response_model=list[SavedResumeOut])
 async def list_saved_resumes(
     user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
@@ -52,6 +56,16 @@ async def list_saved_resumes(
         )
     ).scalars().all()
     return rows
+
+
+@router.get("/resumes/{resume_id}", response_model=SavedResumeDetail)
+async def get_saved_resume(
+    resume_id: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    resume = await db.get(Resume, resume_id)
+    if resume is None or resume.user_id != user.id:
+        raise HTTPException(404, "Resume not found")
+    return resume
 
 
 @router.post("/resumes", response_model=SavedResumeOut, status_code=status.HTTP_201_CREATED)

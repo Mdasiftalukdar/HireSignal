@@ -14,7 +14,7 @@ import {
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import type { SavedResume, Usage } from "@/lib/types";
+import type { SavedResume, SavedResumeDetail, Usage } from "@/lib/types";
 
 const PROVIDERS: { value: string; label: string }[] = [
   { value: "openrouter", label: "OpenRouter" },
@@ -176,6 +176,8 @@ function SavedResumesCard() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<SavedResumeDetail | null>(null);
+  const [viewBusy, setViewBusy] = useState(false);
 
   async function load() {
     setResumes(await api<SavedResume[]>("/me/resumes"));
@@ -183,6 +185,19 @@ function SavedResumesCard() {
   useEffect(() => {
     load();
   }, []);
+
+  async function view(id: number) {
+    setError(null);
+    setViewBusy(true);
+    setViewing(null);
+    try {
+      setViewing(await api<SavedResumeDetail>(`/me/resumes/${id}`));
+    } catch {
+      setError("Couldn't load that resume.");
+    } finally {
+      setViewBusy(false);
+    }
+  }
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -250,13 +265,28 @@ function SavedResumesCard() {
           )}
           {resumes.map((r) => (
             <li key={r.id} className="flex items-center justify-between gap-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate font-medium text-[var(--color-foreground)]">{r.label}</p>
+              <button
+                onClick={() => view(r.id)}
+                className="min-w-0 flex-1 text-left"
+                title="View this resume"
+              >
+                <p className="truncate font-medium text-[var(--color-foreground)] hover:text-[var(--color-primary)]">
+                  {r.label}
+                </p>
                 <p className="truncate text-xs text-[var(--color-subtle)]">{r.filename}</p>
+              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button variant="ghost" onClick={() => view(r.id)}>
+                  View
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => del(r.id, r.label)}
+                  className="text-[var(--color-danger)]"
+                >
+                  Delete
+                </Button>
               </div>
-              <Button variant="ghost" onClick={() => del(r.id, r.label)} className="text-[var(--color-danger)]">
-                Delete
-              </Button>
             </li>
           ))}
         </ul>
@@ -312,6 +342,41 @@ function SavedResumesCard() {
             Save resume
           </Button>
         </form>
+      )}
+
+      {(viewBusy || viewing) && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setViewing(null)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-3">
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{viewing?.label ?? "Resume"}</p>
+                {viewing?.filename && (
+                  <p className="truncate text-xs text-[var(--color-subtle)]">{viewing.filename}</p>
+                )}
+              </div>
+              <Button variant="ghost" onClick={() => setViewing(null)}>
+                Close
+              </Button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              {viewBusy ? (
+                <div className="flex justify-center py-10">
+                  <Spinner className="size-6 text-[var(--color-primary)]" />
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap break-words font-sans text-sm text-[var(--color-foreground)]">
+                  {viewing?.content_text || "No text stored for this resume."}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </Card>
   );

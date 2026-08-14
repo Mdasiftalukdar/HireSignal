@@ -46,6 +46,12 @@ export function AboutAuthor() {
               >
                 GitHub
               </a>
+              <a
+                href="mailto:mdasifmason12345@gmail.com"
+                className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-foreground)] hover:bg-slate-50"
+              >
+                Contact Support
+              </a>
             </div>
           </div>
         )}

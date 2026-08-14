@@ -1,0 +1,89 @@
+name: Deploy backend
+
+# Push to main that touches backend code -> run tests, build the image on GitHub's
+# runners, push it to GHCR, then SSH to the server and roll it out. The frontend is
+# hosted on Vercel (auto-deploys on push), so it is intentionally NOT in the paths.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "alembic/**"
+      - "requirements*.txt"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "docker-compose.prod.yml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: {}
+
+# Never let two deploys race each other onto the same box.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/mdasiftalukdar/hiresignal-api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # push to GHCR with the automatic GITHUB_TOKEN
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          # Cache layers between runs so torch/deps aren't rebuilt every time.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Roll out to the server over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true   # abort on the first failing command
+          script: |
+            set -e
+            cd ~/HireSignal
+            # Refresh tracked files (compose, Caddyfile, migrations); .env is git-ignored and untouched.
+            git fetch origin
+            git reset --hard origin/main
+            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+            # Pull the freshly built image and recreate only api + consumer (no on-box build).
+            $COMPOSE pull api consumer
+            $COMPOSE up -d --no-build api consumer
+            # Apply any new migrations using the baked alembic/ inside the image.
+            $COMPOSE exec -T api alembic upgrade head
+            # Fail the deploy if the service isn't healthy.
+            sleep 3
+            curl -fsS http://localhost:8000/health

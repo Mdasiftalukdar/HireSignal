@@ -35,9 +35,6 @@ models_cache/
 uploads/
 local_s3/
 
-# ---- Docker ----
-docker-compose.override.yml
-
 # ---- Terraform ----
 **/.terraform/*
 *.tfstate

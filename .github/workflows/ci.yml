@@ -1,8 +1,9 @@
 name: CI
 
+# Pull requests are gated here. Pushes to main are handled by deploy.yml, whose
+# own `test` job runs the same suite before building and deploying - so pytest
+# isn't run twice on a main push.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 jobs:

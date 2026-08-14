@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { Alert, Button, Card, Label, Select, Spinner, Textarea } from "@/components/ui";
 import { api, ApiError, streamSSE } from "@/lib/api";
-import type { Analysis, AnalysisSubmit, SavedResume } from "@/lib/types";
+import type { Analysis, AnalysisSubmit, SavedResume, TrackerItem } from "@/lib/types";
 
 type ResumeMode = "saved" | "upload" | "paste";
 type JobMode = "paste" | "upload";
@@ -35,6 +35,20 @@ export default function AnalyzePage() {
         else setSavedId(String(rows[0].id));
       })
       .catch(() => {});
+
+    // Show the most recent completed analysis so it survives navigation and
+    // logout (it's read from the database, so it costs nothing to keep).
+    api<TrackerItem[]>("/me/analyses")
+      .then((list) => {
+        const done = list.find((a) => a.status === "completed");
+        if (!done) return;
+        return api<Analysis>(`/ai/analyze/${done.id}`).then((full) => {
+          setResult(full);
+          setPhase("done");
+        });
+      })
+      .catch(() => {});
+
     return () => {
       abortRef.current?.abort();
     };

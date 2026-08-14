@@ -84,6 +84,11 @@ jobs:
             $COMPOSE up -d --no-build api consumer
             # Apply any new migrations using the baked alembic/ inside the image.
             $COMPOSE exec -T api alembic upgrade head
-            # Fail the deploy if the service isn't healthy.
-            sleep 3
-            curl -fsS http://localhost:8000/health
+            # The API boots slowly (torch + embedding-model imports), so poll for
+            # health instead of a single eager curl. Fail only if it never comes up.
+            ok=0
+            for i in $(seq 1 40); do
+              if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then ok=1; break; fi
+              sleep 3
+            done
+            [ "$ok" = 1 ] && echo "API healthy" || { echo "API not healthy after 120s"; exit 1; }

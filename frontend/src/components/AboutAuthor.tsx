@@ -17,9 +17,9 @@ export function AboutAuthor() {
               <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-base font-bold text-[var(--color-primary-hover)]">
                 MA
               </div>
-              <div className="min-w-0">
+              <div className="flex-1 min-w-0">
                 <p className="font-bold text-[var(--color-foreground)]">Md Asif Talukdar</p>
-                <p className="truncate text-xs text-[var(--color-muted)]">
+                <p className="line-clamp-2 text-xs text-[var(--color-muted)]">
                   MSc Computer Science, University of Lethbridge
                 </p>
               </div>

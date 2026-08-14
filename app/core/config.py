@@ -31,7 +31,9 @@ class Settings(BaseSettings):
 
     # Product limits (Round 1)
     daily_free_limit: int = 2  # analyses/day without a bring-your-own API key
-    max_saved_resumes: int = 3
+    max_saved_resumes: int = 5
+    # Emails that bypass the daily limit entirely (admin / testing). Comma-separated.
+    unlimited_emails: str = ""
 
     # Google OAuth + email OTP (Round 2)
     google_client_id: str | None = None
@@ -110,6 +112,11 @@ class Settings(BaseSettings):
     kafka_topic_analysis: str = "resume-analysis"
     kafka_consumer_group: str = "analysis-workers"
 
+
+    @property
+    def unlimited_email_set(self) -> set[str]:
+        """Lower-cased emails that skip the daily free limit."""
+        return {e.strip().lower() for e in self.unlimited_emails.split(",") if e.strip()}
 
     @property
     def cors_origin_list(self) -> list[str]:

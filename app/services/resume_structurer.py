@@ -43,10 +43,12 @@ _PROMPT = ChatPromptTemplate.from_messages(
             "Preserve the candidate's REAL content - keep their wording where you can. "
             "NEVER invent experience, skills, employers, dates, or contact details that are not "
             "in the text. Pull the name and contact info into the header fields. Put any summary/"
-            "objective paragraph in `summary`. Group the rest into standard sections such as "
-            "Experience, Education, Skills, Projects, Certifications. For each entry set `title` "
-            "(role or degree), `subtitle` (company or school), `meta` (dates and/or location), and "
-            "`bullets`. For a Skills section, use one entry whose bullets are the skill groups. "
+            "objective paragraph in `summary`. Capture EVERY section of the resume in the candidate's "
+            "original order - do NOT omit any, including Experience, Education, Skills, Projects, "
+            "Certifications, Publications, Awards, Volunteer, Interests, References, and any custom "
+            "sections. For each entry set `title` (role or degree), `subtitle` (company or school), "
+            "`meta` (dates and/or location), and `bullets`. For list-style sections (Skills, "
+            "References, Interests), use one entry whose bullets are the individual items. "
             "If a field is absent, leave it empty.",
         ),
         ("human", "RESUME TEXT:\n{resume}\n\nProduce the structured resume."),

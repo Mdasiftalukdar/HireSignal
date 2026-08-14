@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AboutAuthor } from "@/components/AboutAuthor";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className="min-h-full">
         <Providers>{children}</Providers>
+        <AboutAuthor />
       </body>
     </html>
   );

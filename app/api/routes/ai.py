@@ -199,8 +199,10 @@ async def analyze(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # 1) Enforce the daily free limit unless the user brought their own API key.
-    if not user.encrypted_api_key:
+    # 1) Enforce the daily free limit unless the user brought their own API key
+    #    or their email is on the unlimited/admin allow-list.
+    email_unlimited = user.email.lower() in settings.unlimited_email_set
+    if not user.encrypted_api_key and not email_unlimited:
         day_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         used = (
             await db.execute(

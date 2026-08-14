@@ -123,9 +123,9 @@ export default function EditorPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* -------- Editor -------- */}
-        <div className="space-y-5">
+      <div className="grid gap-6 lg:h-[calc(100vh-11rem)] lg:grid-cols-2">
+        {/* -------- Editor (scrolls independently) -------- */}
+        <div className="space-y-5 lg:overflow-y-auto lg:pr-3">
           <ImportResume onImport={(d) => setDoc(d)} />
 
           <AiSuggestions
@@ -280,8 +280,8 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* -------- Live A4 preview -------- */}
-        <div className="lg:sticky lg:top-24 lg:self-start">
+        {/* -------- Live A4 preview (scrolls independently) -------- */}
+        <div className="lg:overflow-y-auto">
           <A4Preview doc={doc} />
         </div>
       </div>

@@ -28,7 +28,7 @@ const PROVIDERS: { value: string; label: string }[] = [
   { value: "xai", label: "xAI (Grok)" },
   { value: "perplexity", label: "Perplexity" },
 ];
-const MAX_SAVED = 3;
+const MAX_SAVED = 5;
 
 export default function SettingsPage() {
   return (

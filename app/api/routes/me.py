@@ -198,11 +198,12 @@ async def usage(user: User = Depends(get_current_user), db: AsyncSession = Depen
         )
     ).scalar_one()
     has_key = bool(user.encrypted_api_key)
+    email_unlimited = user.email.lower() in settings.unlimited_email_set
     return UsageOut(
         today=today,
         total=total,
         daily_limit=settings.daily_free_limit,
-        unlimited=has_key,
+        unlimited=has_key or email_unlimited,
         has_api_key=has_key,
     )
 

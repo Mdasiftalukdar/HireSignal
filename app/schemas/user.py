@@ -43,3 +43,10 @@ class OtpVerify(BaseModel):
 
 class EmailIn(BaseModel):
     email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=8)
+    # Same bcrypt-safe range as UserCreate.password.
+    new_password: str = Field(min_length=8, max_length=72)

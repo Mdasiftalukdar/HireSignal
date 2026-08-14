@@ -15,12 +15,13 @@ from app.models.user import User
 from app.schemas.user import (
     EmailIn,
     OtpVerify,
+    PasswordReset,
     RegisterResponse,
     Token,
     UserCreate,
     UserRead,
 )
-from app.services.email import send_otp_email
+from app.services.email import send_otp_email, send_password_reset_email
 from app.services.otp import create_otp, verify_otp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -73,6 +74,41 @@ async def resend_otp(payload: EmailIn, db: AsyncSession = Depends(get_db)):
     return RegisterResponse(
         message="If that email needs verification, a new code was sent.", email=payload.email
     )
+
+
+# ---------- Forgot / reset password ----------
+
+
+@router.post("/forgot-password", response_model=RegisterResponse)
+async def forgot_password(payload: EmailIn, db: AsyncSession = Depends(get_db)):
+    user = await _get_by_email(db, payload.email)
+    # Only accounts that actually use password login can reset one. Google-only
+    # accounts (no hashed_password) should sign in with Google instead.
+    if user is not None and user.hashed_password:
+        code = await create_otp(payload.email, purpose="reset")
+        await send_password_reset_email(payload.email, code)
+    # Same response regardless, so we don't reveal which emails have accounts.
+    return RegisterResponse(
+        message="If an account exists for that email, a reset code was sent.",
+        email=payload.email,
+    )
+
+
+@router.post("/reset-password", response_model=Token)
+async def reset_password(payload: PasswordReset, db: AsyncSession = Depends(get_db)):
+    user = await _get_by_email(db, payload.email)
+    # Verifying the code proves control of the inbox; a wrong/expired/missing code
+    # (or a non-password account) all fail with the same generic message.
+    if (
+        user is None
+        or not user.hashed_password
+        or not await verify_otp(payload.email, payload.code, purpose="reset")
+    ):
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+    user.hashed_password = hash_password(payload.new_password)
+    user.email_verified = True  # they just proved they control the inbox
+    await db.commit()
+    return Token(access_token=create_access_token(subject=str(user.id)))
 
 
 @router.post("/login", response_model=Token)

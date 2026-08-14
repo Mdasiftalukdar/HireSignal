@@ -41,3 +41,12 @@ async def send_otp_email(to: str, code: str) -> None:
         f"It expires in {settings.otp_ttl_seconds // 60} minutes."
     )
     await run_in_threadpool(_send, to, "Your HireSignal verification code", body)
+
+
+async def send_password_reset_email(to: str, code: str) -> None:
+    body = (
+        f"Your HireSignal password reset code is: {code}\n\n"
+        f"It expires in {settings.otp_ttl_seconds // 60} minutes.\n"
+        f"If you didn't request a password reset, you can safely ignore this email."
+    )
+    await run_in_threadpool(_send, to, "Your HireSignal password reset code", body)

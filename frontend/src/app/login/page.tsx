@@ -80,7 +80,15 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link
+              href="/reset-password"
+              className="text-xs font-semibold text-[var(--color-primary)]"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <Input
             id="password"
             type="password"

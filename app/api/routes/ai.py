@@ -206,7 +206,11 @@ async def analyze(
             await db.execute(
                 select(func.count())
                 .select_from(Analysis)
-                .where(Analysis.user_id == user.id, Analysis.created_at >= day_start)
+                .where(
+                    Analysis.user_id == user.id,
+                    Analysis.created_at >= day_start,
+                    Analysis.status != AnalysisStatus.failed,  # failed attempts don't count
+                )
             )
         ).scalar_one()
         if used >= settings.daily_free_limit:

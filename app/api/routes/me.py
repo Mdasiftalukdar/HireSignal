@@ -13,7 +13,7 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.crypto import encrypt
 from app.db.session import get_db
-from app.models.analysis import Analysis, DecisionStatus
+from app.models.analysis import Analysis, AnalysisStatus, DecisionStatus
 from app.models.resume import Resume
 from app.models.resume_document import ResumeDocument
 from app.models.user import User
@@ -164,16 +164,23 @@ class UsageOut(BaseModel):
 @router.get("/usage", response_model=UsageOut)
 async def usage(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     day_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    # Failed analyses don't count as usage (they never produced a result).
     today = (
         await db.execute(
             select(func.count())
             .select_from(Analysis)
-            .where(Analysis.user_id == user.id, Analysis.created_at >= day_start)
+            .where(
+                Analysis.user_id == user.id,
+                Analysis.created_at >= day_start,
+                Analysis.status != AnalysisStatus.failed,
+            )
         )
     ).scalar_one()
     total = (
         await db.execute(
-            select(func.count()).select_from(Analysis).where(Analysis.user_id == user.id)
+            select(func.count())
+            .select_from(Analysis)
+            .where(Analysis.user_id == user.id, Analysis.status != AnalysisStatus.failed)
         )
     ).scalar_one()
     has_key = bool(user.encrypted_api_key)
@@ -253,6 +260,19 @@ async def update_tracking(
         a.applied = payload.applied
     if payload.decision is not None:
         a.decision = payload.decision
+    await db.commit()
+
+
+@router.delete("/analyses/{analysis_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_analysis(
+    analysis_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    a = await db.get(Analysis, analysis_id)
+    if a is None or a.user_id != user.id:
+        raise HTTPException(404, "Analysis not found")
+    await db.delete(a)
     await db.commit()
 
 

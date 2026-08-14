@@ -76,7 +76,12 @@ add to **Authorized redirect URIs**:
 
 ## 7. Deploy
 
+The container runs as a non-root user (uid 1000), so the bind-mounted cache dirs
+must be writable by it, or the embedding model download fails with a PermissionError:
+
 ```bash
+mkdir -p .cache/huggingface chroma_data
+sudo chown -R 1000:1000 .cache chroma_data
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 docker compose exec api alembic upgrade head
 ```

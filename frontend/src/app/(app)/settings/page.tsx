@@ -213,9 +213,15 @@ function SavedResumesCard() {
     }
   }
 
-  async function del(id: number) {
-    await api(`/me/resumes/${id}`, { method: "DELETE" });
-    await load();
+  async function del(id: number, label: string | null) {
+    if (!confirm(`Delete the saved resume "${label ?? "this resume"}"? This can't be undone.`)) return;
+    setError(null);
+    try {
+      await api(`/me/resumes/${id}`, { method: "DELETE" });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete resume");
+    }
   }
 
   const count = resumes?.length ?? 0;
@@ -248,7 +254,7 @@ function SavedResumesCard() {
                 <p className="truncate font-medium text-[var(--color-foreground)]">{r.label}</p>
                 <p className="truncate text-xs text-[var(--color-subtle)]">{r.filename}</p>
               </div>
-              <Button variant="ghost" onClick={() => del(r.id)} className="text-[var(--color-danger)]">
+              <Button variant="ghost" onClick={() => del(r.id, r.label)} className="text-[var(--color-danger)]">
                 Delete
               </Button>
             </li>

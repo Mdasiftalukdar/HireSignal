@@ -30,6 +30,17 @@ export default function TrackerPage() {
     }
   }
 
+  async function del(id: number) {
+    if (!confirm("Delete this analysis from your tracker? This can't be undone.")) return;
+    setItems((cur) => cur?.filter((it) => it.id !== id) ?? cur); // optimistic
+    try {
+      await api(`/me/analyses/${id}`, { method: "DELETE" });
+    } catch {
+      const fresh = await api<TrackerItem[]>("/me/analyses").catch(() => null);
+      if (fresh) setItems(fresh);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -67,6 +78,7 @@ export default function TrackerPage() {
                   <Th>Resume</Th>
                   <Th>Applied</Th>
                   <Th>Outcome</Th>
+                  <Th></Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
@@ -126,6 +138,15 @@ export default function TrackerPage() {
                         ))}
                       </select>
                     </Td>
+                    <Td>
+                      <button
+                        onClick={() => del(it.id)}
+                        title="Delete this analysis"
+                        className="rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-danger)] hover:bg-red-50"
+                      >
+                        ✕
+                      </button>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -137,7 +158,7 @@ export default function TrackerPage() {
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
+function Th({ children }: { children?: React.ReactNode }) {
   return <th className="px-4 py-3 font-semibold">{children}</th>;
 }
 function Td({ children }: { children: React.ReactNode }) {

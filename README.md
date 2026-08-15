@@ -1,8 +1,11 @@
 # HireSignal
 
-**A full-stack, AI-powered resume analyzer and job-application tracker. Secure, containerized, and production-shaped end to end.**
+**A full-stack, AI-powered resume analyzer and job-application tracker. Live in production, secure, and containerized end to end.**
+
+**▶ Live demo:** [hire-signal-gilt.vercel.app](https://hire-signal-gilt.vercel.app) &nbsp;·&nbsp; **API health:** [hiresignal-asif.duckdns.org/health](https://hiresignal-asif.duckdns.org/health)
 
 [![CI](https://github.com/Mdasiftalukdar/HireSignal/actions/workflows/ci.yml/badge.svg)](https://github.com/Mdasiftalukdar/HireSignal/actions/workflows/ci.yml)
+[![Deploy backend](https://github.com/Mdasiftalukdar/HireSignal/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mdasiftalukdar/HireSignal/actions/workflows/deploy.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
@@ -40,7 +43,8 @@ flowchart LR
 
 **Frontend (Next.js)**
 - Marketing landing page, plus a full app behind authentication
-- Sign in with Google or email and password, with an email one-time-code verification step
+- Sign in with Google or email and password, with an email one-time-code verification step and a
+  forgot-password reset flow (emailed code, generic responses that avoid account enumeration)
 - Dashboard with usage counters and quick actions
 - Analyze flow: pick a saved resume, upload one, or paste text, add a job description, and watch the
   status stream in live (Server-Sent Events)
@@ -63,17 +67,19 @@ flowchart LR
 - Async analysis pipeline: the API accepts the job and returns immediately; a Kafka consumer does the work
 - Object storage (S3 or MinIO) for saved resumes, using the same code that targets AWS S3
 - Multi-format uploads: PDF, DOCX, and TXT, or pasted text
-- Per-user accounts: up to 3 saved resumes, bring-your-own LLM key (encrypted) for unlimited use, or a
+- Per-user accounts: up to 5 saved resumes, bring-your-own LLM key (encrypted) for unlimited use, or a
   daily free limit with usage counters
 - Observability: Prometheus metrics and provisioned Grafana dashboards
 - SQL analytics layer: reporting views and a window-function query library ([`analytics/`](analytics/))
 - GraphQL API (Strawberry) alongside REST, with a DataLoader (N+1 solved) and a playground at `/graphql`
 - Infrastructure as Code (Terraform): S3, least-privilege IAM, and ECR, validated and planned
   ([`infra/terraform/`](infra/terraform/))
-- CI (GitHub Actions): unit tests run on every push
+- CI/CD (GitHub Actions): tests gate pull requests; a push to `main` builds an immutable image, pushes
+  it to the GitHub Container Registry, and auto-deploys the backend to the server over SSH
 
 **On the roadmap**
-- Live cloud deployment (ECS/Fargate) on the Terraform infrastructure
+- Time-boxed AWS deployment (ECS/Fargate) on the existing Terraform infrastructure, as a portable-cloud demo
+- Format-preserving resume import (preserve the original fonts and bold)
 - Power BI dashboard on the analytics views
 
 ## Tech stack
@@ -91,6 +97,32 @@ flowchart LR
 | Storage | AWS S3 (MinIO locally) |
 | Observability | Prometheus, Grafana |
 | Infra | Docker Compose, Terraform |
+| Deployment | Vercel (frontend), Hetzner VPS, Caddy (HTTPS / Let's Encrypt) |
+| CI/CD | GitHub Actions, GitHub Container Registry (GHCR) |
+
+## Deployment & CI/CD
+
+HireSignal runs as a live, public product:
+
+- **Frontend** on **Vercel**, auto-deploying on every push to `main`.
+- **Backend** as the full Docker Compose stack on a **Hetzner** VPS, with **Caddy** terminating HTTPS
+  (automatic Let's Encrypt certificates) and reverse-proxying to the API.
+
+Backend deploys are automated. A push to `main` that touches backend code runs a GitHub Actions pipeline:
+
+```mermaid
+flowchart LR
+    PUSH[push to main] --> TEST[pytest]
+    TEST --> BUILD[build image on runner]
+    BUILD --> GHCR[(GHCR registry)]
+    GHCR --> DEPLOY[SSH deploy: pull, recreate, migrate, health-check]
+```
+
+The image is built once on GitHub's runners and pushed to the GitHub Container Registry tagged by commit
+SHA, so the server pulls a reproducible, immutable artifact instead of building on the box; the same image
+runs the API and the Kafka worker. Locally, an auto-loaded `docker-compose.override.yml` restores
+hot-reload and bind-mounted source, while the server runs the base file plus a production overlay, so it
+always runs the built image.
 
 ## Getting started
 
@@ -149,7 +181,8 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-The same fast unit tests (chunking, auth, text extraction) run in CI on every push.
+The same fast unit tests (chunking, auth, text extraction) run in CI on pull requests, and again as the
+first gate of the deploy pipeline on every push to `main`.
 
 ## Project structure
 

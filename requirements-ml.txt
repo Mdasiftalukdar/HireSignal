@@ -1,4 +1,8 @@
 # PyTorch (CPU build) only - large and stable, with no shared transitive deps, so it sits
 # safely in its own cached Docker layer. Everything else resolves together in requirements.txt.
+# The "+cpu" wheel is published only for x86_64. On aarch64 (ARM - e.g. the Oracle A1 server)
+# the plain 2.5.1 wheel from the same index is already CPU-only, so a platform marker picks
+# the right one and the single file builds on both architectures.
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.5.1+cpu
+torch==2.5.1+cpu; platform_machine == "x86_64"
+torch==2.5.1; platform_machine == "aarch64"

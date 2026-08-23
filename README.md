@@ -97,7 +97,7 @@ flowchart LR
 | Storage | AWS S3 (MinIO locally) |
 | Observability | Prometheus, Grafana |
 | Infra | Docker Compose, Terraform |
-| Deployment | Vercel (frontend), Hetzner VPS, Caddy (HTTPS / Let's Encrypt) |
+| Deployment | Vercel (frontend), Oracle Cloud Always Free ARM VM, Caddy (HTTPS / Let's Encrypt) |
 | CI/CD | GitHub Actions, GitHub Container Registry (GHCR) |
 
 ## Deployment & CI/CD
@@ -105,10 +105,11 @@ flowchart LR
 HireSignal runs as a live, public product:
 
 - **Frontend** on **Vercel**, auto-deploying on every push to `main`.
-- **Backend** as the full Docker Compose stack on a **Hetzner** VPS, with **Caddy** terminating HTTPS
-  (automatic Let's Encrypt certificates) and reverse-proxying to the API.
+- **Backend** as the full Docker Compose stack on an **Oracle Cloud Always Free ARM (aarch64) VM**, with
+  **Caddy** terminating HTTPS (automatic Let's Encrypt certificates) and reverse-proxying to the API.
 
-Backend deploys are automated. A push to `main` that touches backend code runs a GitHub Actions pipeline:
+Backend deploys are automated. A push to `main` that touches backend code runs a GitHub Actions pipeline
+(the image is built on a native **arm64** runner to match the server):
 
 ```mermaid
 flowchart LR

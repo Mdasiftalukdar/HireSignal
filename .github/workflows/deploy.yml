@@ -38,7 +38,9 @@ jobs:
 
   build-and-push:
     needs: test
-    runs-on: ubuntu-latest
+    # The server is an ARM (aarch64) Oracle A1 box, so build the image natively on a
+    # free arm64 runner. This produces an arm64 image the server can pull and run.
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write   # push to GHCR with the automatic GITHUB_TOKEN

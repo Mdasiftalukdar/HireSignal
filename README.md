@@ -105,7 +105,7 @@ flowchart LR
 HireSignal runs as a live, public product:
 
 - **Frontend** on **Vercel**, auto-deploying on every push to `main`.
-- **Backend** as the full Docker Compose stack on an **Oracle Cloud Always Free ARM (aarch64) VM**, with
+- **Backend** as the full Docker Compose stack on an **Oracle Cloud (aarch64) VM, previously it was on Hetzner (x86) VM**, with
   **Caddy** terminating HTTPS (automatic Let's Encrypt certificates) and reverse-proxying to the API.
 
 Backend deploys are automated. A push to `main` that touches backend code runs a GitHub Actions pipeline

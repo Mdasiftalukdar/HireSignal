@@ -97,7 +97,7 @@ flowchart LR
 | Storage | AWS S3 (MinIO locally) |
 | Observability | Prometheus, Grafana |
 | Infra | Docker Compose, Terraform |
-| Deployment | Vercel (frontend), Oracle Cloud Always Free ARM VM, Caddy (HTTPS / Let's Encrypt) |
+| Deployment | Vercel (frontend), Oracle Cloud ARM VM, Caddy (HTTPS / Let's Encrypt) |
 | CI/CD | GitHub Actions, GitHub Container Registry (GHCR) |
 
 ## Deployment & CI/CD

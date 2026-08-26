@@ -94,3 +94,6 @@ jobs:
               sleep 3
             done
             [ "$ok" = 1 ] && echo "API healthy" || { echo "API not healthy after 120s"; exit 1; }
+            # Each deploy pulls a fresh image and leaves the previous one dangling; reclaim
+            # it so disk doesn't creep up over many deploys (the ~9 GB ML image adds up).
+            docker image prune -f
